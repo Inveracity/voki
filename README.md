@@ -3,8 +3,8 @@ voki-cli
 
 # usage
 
-change `target.hcl` to one or more ssh reachable servers and run
+change the host in `target.example.hcl` to a SSH reachable address and then run
 
 ```sh
-./voki run target.hcl
+./voki run target.example.hcl
 ```
