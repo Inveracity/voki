@@ -2,7 +2,6 @@ package client
 
 import (
 	"bytes"
-	"fmt"
 	"log"
 	"net"
 	"os"
@@ -12,7 +11,7 @@ import (
 	"golang.org/x/crypto/ssh/agent"
 )
 
-func TestConnection(config targets.Target, command string) {
+func TestConnection(config targets.Target, command string) string {
 	sock, err := sshAgent()
 	if err != nil {
 		log.Fatalln(err)
@@ -45,7 +44,8 @@ func TestConnection(config targets.Target, command string) {
 	if err := session.Run(command); err != nil {
 		log.Fatal("Failed to run: " + err.Error())
 	}
-	fmt.Println(b.String())
+
+	return b.String()
 }
 
 func sshAgent() (agent.ExtendedAgent, error) {
