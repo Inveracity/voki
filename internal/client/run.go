@@ -14,10 +14,10 @@ func (c *Client) Run(specfile string) {
 	config := targets.Parse(specfile)
 	w := indent.New(os.Stdout, "   ")
 
-	for idx, target := range config.Targets {
+	for _, target := range config.Targets {
 		fmt.Println("==== " + target.Name + " ====\n")
 
-		for _, step := range target.Steps {
+		for idx, step := range target.Steps {
 			if step.Action == "cmd" {
 				fmt.Println("Command", idx+1)
 				fmt.Fprintln(w, color.BlueString(step.Command))
