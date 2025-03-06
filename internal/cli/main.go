@@ -33,7 +33,7 @@ func (a *App) Run() error {
 		},
 	}
 
-	rootCmd.AddCommand((&CmdPing{Client: &a.Client}).Command())
+	rootCmd.AddCommand((&CmdRun{Client: &a.Client}).Command())
 	rootCmd.Root().CompletionOptions.DisableDefaultCmd = true
 
 	return rootCmd.Execute()

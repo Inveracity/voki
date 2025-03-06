@@ -1,6 +1,6 @@
 module github.com/inveracity/voki
 
-go 1.22.2
+go 1.23
 
 require (
 	github.com/hashicorp/hcl2 v0.0.0-20191002203319-fb75b3253c80

@@ -3,14 +3,8 @@ voki-cli
 
 # usage
 
-change `targets.hcl` one or more ssh reachable servers and run
+change `target.hcl` to one or more ssh reachable servers and run
 
 ```sh
-./voki ping
-```
-
-or one specific target by name
-
-```sh
-./voki ping myserver
+./voki run target.hcl
 ```
