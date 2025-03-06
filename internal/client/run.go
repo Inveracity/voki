@@ -27,5 +27,4 @@ func (c *Client) Run(specfile string) {
 			}
 		}
 	}
-
 }

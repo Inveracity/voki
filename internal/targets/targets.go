@@ -4,7 +4,9 @@ import (
 	"log"
 
 	"github.com/hashicorp/hcl2/gohcl"
+	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hclparse"
+	"github.com/zclconf/go-cty/cty/function"
 )
 
 type Configuration struct {
@@ -25,14 +27,21 @@ type Step struct {
 
 func Parse(specfile string) Configuration {
 	parser := hclparse.NewParser()
+
 	file, diags := parser.ParseHCLFile(specfile)
 
 	if diags.HasErrors() {
 		log.Fatal(diags)
 	}
 
+	ctx := &hcl.EvalContext{
+		Functions: map[string]function.Function{
+			"file": FileFunc,
+		},
+	}
+
 	var config Configuration
-	confDiags := gohcl.DecodeBody(file.Body, nil, &config)
+	confDiags := gohcl.DecodeBody(file.Body, ctx, &config)
 
 	if confDiags.HasErrors() {
 		log.Fatal(confDiags)
