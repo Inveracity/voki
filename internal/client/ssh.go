@@ -12,7 +12,7 @@ import (
 	"golang.org/x/crypto/ssh/agent"
 )
 
-func TestConnection(config targets.Target) {
+func TestConnection(config targets.Target, command string) {
 	sock, err := sshAgent()
 	if err != nil {
 		log.Fatalln(err)
@@ -42,7 +42,7 @@ func TestConnection(config targets.Target) {
 	// the remote side using the Run method.
 	var b bytes.Buffer
 	session.Stdout = &b
-	if err := session.Run(config.Cmd); err != nil {
+	if err := session.Run(command); err != nil {
 		log.Fatal("Failed to run: " + err.Error())
 	}
 	fmt.Println(b.String())

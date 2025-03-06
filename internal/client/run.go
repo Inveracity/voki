@@ -11,7 +11,12 @@ func (c *Client) Run(specfile string) {
 
 	for _, target := range config.Targets {
 		fmt.Println("target: " + target.Name)
-		TestConnection(target)
+
+		for _, step := range target.Steps {
+			if step.Action == "cmd" {
+				TestConnection(target, step.Command)
+			}
+		}
 	}
 
 }
