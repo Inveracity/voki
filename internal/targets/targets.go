@@ -10,9 +10,9 @@ import (
 )
 
 type Configuration struct {
-	Targets []Target     `hcl:"target,block"`
-	Import  *ImportBlock `hcl:"import,block"`
-	Tasks   []Task       `hcl:"task,block"`
+	Targets []Target      `hcl:"target,block"`
+	Import  []ImportBlock `hcl:"import,block"`
+	Tasks   []Task        `hcl:"task,block"`
 }
 
 type ImportBlock struct {
@@ -64,14 +64,16 @@ func Parse(filename string) (*Configuration, error) {
 	}
 
 	// Handle import if specified
-	if config.Import != nil && config.Import.File != "" {
-		importedConfig, err := Parse(config.Import.File)
-		if err != nil {
-			return nil, err
-		}
+	if config.Import != nil {
+		for _, importBlock := range config.Import {
+			importedConfig, err := Parse(importBlock.File)
+			if err != nil {
+				return nil, err
+			}
 
-		if importedConfig.Tasks != nil {
-			config.Tasks = append(config.Tasks, importedConfig.Tasks...)
+			if importedConfig.Tasks != nil {
+				config.Tasks = append(config.Tasks, importedConfig.Tasks...)
+			}
 		}
 	}
 
