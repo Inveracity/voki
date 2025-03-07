@@ -54,7 +54,8 @@ func Parse(filename string) (*Configuration, error) {
 
 	ctx := &hcl.EvalContext{
 		Functions: map[string]function.Function{
-			"file": FileFunc,
+			"file":     FileFunc,
+			"template": TemplateFunc,
 		},
 	}
 

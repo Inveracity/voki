@@ -26,4 +26,6 @@ go.work.sum
 
 # examples
 *.hcl
+*.tpl
 !examples/*.hcl
+!examples/*.tpl

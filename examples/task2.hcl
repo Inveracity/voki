@@ -1,5 +1,7 @@
 task "test" {
     step "cmd" {
-        command = "echo 'test'"
+        command = template("examples/hello.sh.tpl", {
+            Name: "WORLD!"
+        })
     }
 }

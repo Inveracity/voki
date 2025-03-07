@@ -26,3 +26,57 @@ target "myserver" {
     }
 }
 ```
+
+## Inline functions
+
+### file()
+
+Load a text file such as a script and pass it without modification.
+
+In the below example a script is loaded and executed on a target.
+
+```hcl
+// target.hcl
+target "myserver" {
+    user = "root"
+    host = "xyz:22"
+
+    step "cmd" {
+        command = file("hello.sh")
+    }
+}
+```
+
+and the contents of `hello.sh`
+
+```sh
+echo "hello world"
+```
+
+### template()
+
+Load a text file such as a script and pass dynamic data to be rendered before use.
+
+The template rendering uses Go's builtin [html/template](https://pkg.go.dev/html/template).
+
+In the below example a script has a key/value pair passed in that will be rendered before executed on a target.
+
+```hcl
+// target.hcl
+target "myserver" {
+    user = "root"
+    host = "xyz:22"
+
+    step "cmd" {
+        command = template("hello.sh.tpl", {
+            Name: "world!"
+        })
+    }
+}
+```
+
+in the `hello.sh.tpl` the `Name` is being passed in before execution.
+
+```sh
+echo "hello {{ .Name }}"
+```
