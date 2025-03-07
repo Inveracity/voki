@@ -3,6 +3,7 @@ module github.com/inveracity/voki
 go 1.23.7
 
 require (
+	github.com/bramvdbogaerde/go-scp v1.5.0
 	github.com/fatih/color v1.14.1
 	github.com/hashicorp/hcl2 v0.0.0-20191002203319-fb75b3253c80
 	github.com/lithammer/dedent v1.1.0
@@ -37,7 +38,7 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
-	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/sys v0.24.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
