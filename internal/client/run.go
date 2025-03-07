@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/fatih/color"
@@ -11,11 +12,23 @@ import (
 )
 
 func (c *Client) Run(specfile string) {
-	config := targets.Parse(specfile)
+	config, err := targets.Parse(specfile)
+	if err != nil {
+		log.Fatalln(err)
+	}
 	w := indent.New(os.Stdout, "   ")
 
 	for _, target := range config.Targets {
 		fmt.Println("==== " + target.Name + " ====\n")
+
+		// Add imported steps from a task file
+		for _, taskname := range target.Apply.Use {
+			task, err := findTask(config.Tasks, taskname)
+			if err != nil {
+				log.Fatalln(err)
+			}
+			target.Steps = append(target.Steps, task.Steps...)
+		}
 
 		for idx, step := range target.Steps {
 			if step.Action == "cmd" {
@@ -27,4 +40,13 @@ func (c *Client) Run(specfile string) {
 			}
 		}
 	}
+}
+
+func findTask(tasks []targets.Task, name string) (*targets.Task, error) {
+	for _, task := range tasks {
+		if task.Name == name {
+			return &task, nil
+		}
+	}
+	return nil, fmt.Errorf("task %s not found", name)
 }

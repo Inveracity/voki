@@ -7,10 +7,10 @@ Voki configuration management
 Change the host in `target.example.hcl` to a SSH reachable address and then run
 
 ```sh
-./voki run target.example.hcl
+./voki run examples/target.hcl
 ```
 
-## Specification
+## Specification example
 
 ```hcl
 target "myserver" {

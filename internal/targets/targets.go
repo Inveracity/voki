@@ -10,14 +10,21 @@ import (
 )
 
 type Configuration struct {
-	Targets []Target `hcl:"target,block"`
+	Targets []Target     `hcl:"target,block"`
+	Import  *ImportBlock `hcl:"import,block"`
+	Tasks   []Task       `hcl:"task,block"`
+}
+
+type ImportBlock struct {
+	File string `hcl:"file"`
 }
 
 type Target struct {
-	Name  string `hcl:"name,label"`
-	User  string `hcl:"user"`
-	Host  string `hcl:"host"`
-	Steps []Step `hcl:"step,block"`
+	Name  string      `hcl:"name,label"`
+	User  string      `hcl:"user"`
+	Host  string      `hcl:"host"`
+	Steps []Step      `hcl:"step,block"`
+	Apply *ApplyBlock `hcl:"apply,block"`
 }
 
 type Step struct {
@@ -25,10 +32,21 @@ type Step struct {
 	Command string `hcl:"command"`
 }
 
-func Parse(specfile string) Configuration {
+type Task struct {
+	Name  string `hcl:"task,label"`
+	Steps []Step `hcl:"step,block"`
+}
+
+type ApplyBlock struct {
+	Use []string `hcl:"use"`
+}
+
+func Parse(filename string) (*Configuration, error) {
+	var config Configuration
+
 	parser := hclparse.NewParser()
 
-	file, diags := parser.ParseHCLFile(specfile)
+	file, diags := parser.ParseHCLFile(filename)
 
 	if diags.HasErrors() {
 		log.Fatal(diags)
@@ -40,12 +58,22 @@ func Parse(specfile string) Configuration {
 		},
 	}
 
-	var config Configuration
-	confDiags := gohcl.DecodeBody(file.Body, ctx, &config)
-
-	if confDiags.HasErrors() {
-		log.Fatal(confDiags)
+	err := gohcl.DecodeBody(file.Body, ctx, &config)
+	if err != nil {
+		return nil, err
 	}
 
-	return config
+	// Handle import if specified
+	if config.Import != nil && config.Import.File != "" {
+		importedConfig, err := Parse(config.Import.File)
+		if err != nil {
+			return nil, err
+		}
+
+		if importedConfig.Tasks != nil {
+			config.Tasks = append(config.Tasks, importedConfig.Tasks...)
+		}
+	}
+
+	return &config, nil
 }
