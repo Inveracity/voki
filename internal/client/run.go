@@ -22,12 +22,14 @@ func (c *Client) Run(specfile string) {
 		fmt.Println("==== " + target.Name + " ====\n")
 
 		// Add imported steps from a task file
-		for _, taskname := range target.Apply.Use {
-			task, err := findTask(config.Tasks, taskname)
-			if err != nil {
-				log.Fatalln(err)
+		if target.Apply != nil {
+			for _, taskname := range target.Apply.Use {
+				task, err := findTask(config.Tasks, taskname)
+				if err != nil {
+					log.Fatalln(err)
+				}
+				target.Steps = append(target.Steps, task.Steps...)
 			}
-			target.Steps = append(target.Steps, task.Steps...)
 		}
 
 		for idx, step := range target.Steps {
