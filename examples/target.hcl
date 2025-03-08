@@ -20,8 +20,22 @@ target "myserver" {
         command = file("examples/hello.sh")
     }
 
+    // Template file
+    step "cmd" {
+        command = template("examples/hello.sh.tpl", {
+            Name: "WORLD!"
+        })
+    }
+
     // Import steps from another file
     step "task" {
         task = file("task.hcl")
+    }
+
+    // Copy file to remote host
+    step "file" {
+      source = "myfile.sh.tpl"
+      destination = "/tmp/myfile.sh"
+      mode = "0755"
     }
 }
