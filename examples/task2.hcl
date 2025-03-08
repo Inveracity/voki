@@ -1,7 +1,5 @@
-task "test" {
-    step "cmd" {
-        command = template("examples/hello.sh.tpl", {
-            Name: "WORLD!"
-        })
-    }
+step "cmd" {
+    command = template("examples/hello.sh.tpl", {
+        Name: "WORLD!"
+    })
 }

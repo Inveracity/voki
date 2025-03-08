@@ -2,6 +2,7 @@ package cli
 
 import (
 	"log"
+	"os"
 
 	"github.com/spf13/cobra"
 
@@ -21,7 +22,11 @@ func (h *CmdRun) Command() *cobra.Command {
 			if len(args) != 1 {
 				log.Fatalln("expected 1 argument")
 			}
-			h.Client.Run(args[0])
+			content, err := os.ReadFile(args[0])
+			if err != nil {
+				log.Fatalln(err)
+			}
+			h.Client.Run(string(content))
 			return nil
 		},
 	}
