@@ -28,8 +28,8 @@ target "myserver" {
         command = file("examples/hello.sh")
     }
 
+    // Import steps from another file
     step "task" {
-        module = file("task.hcl")
-        use = ["install_nginx", "configure_nginx"]
+        task = file("task.hcl")
     }
 }
