@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"context"
@@ -36,17 +36,4 @@ func TransferFile(ctx context.Context, user, host string, file File) {
 	if err != nil {
 		log.Fatalln("Error while copying file ", err)
 	}
-}
-
-func main() {
-	ctx := context.Background()
-	user := "username"
-	host := "someaddress:22"
-	file := File{
-		Source:      "test.txt",
-		Destination: "/tmp/test.txt",
-		Mode:        "0644",
-	}
-
-	TransferFile(ctx, user, host, file)
 }

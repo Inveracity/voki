@@ -1,54 +1,68 @@
 package client
 
 import (
+	"context"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/fatih/color"
-	"github.com/pborman/indent"
 
 	"github.com/inveracity/voki/internal/targets"
 )
 
-func (c *Client) Run(specfile string) {
-	config, err := targets.Parse(specfile)
+func (c *Client) Run(hcl string) {
+	config, err := targets.ParseString([]byte(hcl))
 	if err != nil {
 		log.Fatalln(err)
 	}
-	w := indent.New(os.Stdout, "   ")
 
 	for _, target := range config.Targets {
 		fmt.Println("==== " + target.Name + " ====\n")
 
-		// Add imported steps from a task file
-		if target.Apply != nil {
-			for _, taskname := range target.Apply.Use {
-				task, err := findTask(config.Tasks, taskname)
-				if err != nil {
-					log.Fatalln(err)
-				}
-				target.Steps = append(target.Steps, task.Steps...)
-			}
-		}
-
-		for idx, step := range target.Steps {
-			if step.Action == "cmd" {
-				fmt.Println("Command", idx+1)
-				fmt.Fprintln(w, color.BlueString(step.Command))
-				result := TestConnection(target, step.Command)
-				fmt.Println("Result:")
-				fmt.Fprintln(w, color.GreenString(result))
-			}
-		}
+		c.ExecuteSteps(target, target.Steps)
 	}
 }
 
-func findTask(tasks []targets.Task, name string) (*targets.Task, error) {
-	for _, task := range tasks {
-		if task.Name == name {
-			return &task, nil
+func (c *Client) ExecuteSteps(target targets.Target, steps []targets.Step) {
+	for idx, step := range steps {
+		switch step.Action {
+
+		// Run commands on the remote server
+		case "cmd":
+			fmt.Println("Command", idx+1)
+			fmt.Fprintln(c.writer, color.BlueString(step.Command))
+			result := TestConnection(target, step.Command)
+			fmt.Println("Result:")
+			fmt.Fprintln(c.writer, color.GreenString(result))
+
+		// Copy a file to the remote server
+		case "file":
+			ctx := context.Background()
+			fmt.Println("File", idx+1)
+			fmt.Fprintln(c.writer, color.BlueString(step.Source))
+
+			file := File{
+				Source:      step.Source,
+				Destination: step.Destination,
+				Mode:        step.Mode,
+			}
+
+			TransferFile(ctx, target.User, target.Host, file)
+
+			fmt.Println("Result:")
+			fmt.Fprintln(c.writer, color.GreenString(step.Destination))
+
+		// Parse a file with steps in it and run them
+		case "task":
+			// Recursively run a task
+			config, err := targets.ParseString([]byte(step.Task))
+			if err != nil {
+				log.Fatalln(err)
+			}
+			c.ExecuteSteps(target, config.Steps)
+
+		default:
+			log.Fatalln("Unknown action", step.Action)
 		}
 	}
-	return nil, fmt.Errorf("task %s not found", name)
 }

@@ -28,9 +28,8 @@ target "myserver" {
         command = file("examples/hello.sh")
     }
 
-
-    // Run imported steps
-    apply {
-      use = ["install_nginx", "configure_nginx", "test"]
+    step "task" {
+        module = file("task.hcl")
+        use = ["install_nginx", "configure_nginx"]
     }
 }
