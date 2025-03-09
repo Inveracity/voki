@@ -1,16 +1,21 @@
 # voki
 
-Voki configuration management
+Voki configuration management.
 
-# Usage
+Voki uses SSH under the hood to connect to remote machines.
 
-Change the host in `target.example.hcl` to a SSH reachable address and then run
+> [!NOTE]
+> As of right now Voki requires an active SSH Agent to connect to machines.
+
+## Usage
+
+Change the host in `examples/target.hcl` to a SSH reachable address and then run
 
 ```sh
 ./voki run examples/target.hcl
 ```
 
-## Specification example
+## Example
 
 ```hcl
 target "myserver" {
@@ -27,9 +32,145 @@ target "myserver" {
 }
 ```
 
-## Inline functions
+## Specifications
 
-### file()
+Voki configuration file consist of Targets and Task files.
+
+The target configurations have the following structure:
+
+`Target "label" -> Step "action"`
+
+and Task configurations only includes:
+
+`Step "action"`
+
+Targets and tasks files can have any name desired.
+
+### Targets
+
+_Target_ takes the following variables to configure the SSH connection.
+
+```hcl
+target "a label for the configuration" {
+    user = "root"
+    host = "address:22"
+
+    // steps go here
+}
+```
+
+- `user` the username to connect to the remote host
+- `host` the address including the port number separated by a colon: `ipaddress:port`
+
+### Steps
+
+Steps has a label for which _Action_ to perform for the remote host.
+
+```hcl
+target "mytarget" {
+    user = "root"
+    host = "address:22"
+
+    step "cmd" {
+        command = "hello world"
+    }
+}
+```
+
+In the example above the _Step_ takes the label `"cmd"` which tells voki what the _Action_ is.
+
+See the actions available below.
+
+### Actions
+
+Actions are taken based on the label applied to the step as shown in the _Steps_ section above.
+
+#### Action: Cmd
+
+Cmd runs a command or multiple commands on the configured target.
+
+Cmd takes the following variables:
+
+- `command` commands to run on the remote host.
+
+```hcl
+target "mytarget" {
+    user = "root"
+    host = "address:22"
+
+    step "cmd" {
+        command = "echo 'hello world'"
+    }
+
+    // Multiline input for multiple commands and scripts.
+    step "cmd" {
+        command = <<-EOT
+            echo "1"
+            echo "2"
+        EOT
+    }
+}
+```
+
+See the _Inline functions_ for running scripts with the Cmd action.
+
+#### Action: File
+
+File copies a file from the local filesystem to the remote filesystem.
+
+File takes the following variables:
+
+- `source` the path on the host voki is executed on.
+- `destination` the path on the remote host where the file should be copied to.
+- `mode` the permissions on the file on the remote host.
+
+```hcl
+target "mytarget" {
+    user = "root"
+    host = "address:22"
+
+    step "file" {
+      source = "myfile.sh.tpl"
+      destination = "/tmp/myfile.sh"
+      mode = "0755"
+    }
+}
+```
+
+#### Action: Task
+
+Task is a special action that reads a separate configuration file with steps.
+
+In the `target.hcl` file define the `step "task" {}` an use the inline function `file()` to read the `task.hcl` file.
+
+- `target.hcl`
+
+    ```hcl
+    target "mytarget" {
+        user = "root"
+        host = "address:22"
+
+        step "task" {
+            task = file("task.hcl")
+        }
+    }
+    ```
+
+- `task.hcl`
+
+    ```hcl
+    step "cmd" {
+        command = "echo 'hello task'"
+    }
+    ```
+
+A task file does not have a _Target_ specification, only _Steps_.
+
+Task files can also include nested task actions if so desired.
+
+### Inline Functions
+
+#### Function: file()
 
 Load a text file such as a script and pass it without modification.
 
@@ -53,7 +194,7 @@ and the contents of `hello.sh`
 echo "hello world"
 ```
 
-### template()
+#### Function: template()
 
 Load a text file such as a script and pass dynamic data to be rendered before use.
 
@@ -79,4 +220,20 @@ in the `hello.sh.tpl` the `Name` is being passed in before execution.
 
 ```sh
 echo "hello {{ .Name }}"
+```
+
+## Build from source
+
+Ensure Go 1.23 or newer is installed.
+
+```sh
+make build
+
+./bin/voki --help
+```
+
+Install into `/home/$(USER)/.local/bin`
+
+```sh
+make install
 ```

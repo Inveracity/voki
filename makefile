@@ -1,8 +1,6 @@
-bin/voki:
-	go build -o bin/voki cmd/voki/main.go
-
 PHONY: build
-build: bin/voki
+build:
+	go build -o bin/voki cmd/voki/main.go
 
 PHONY: install
 install: build
