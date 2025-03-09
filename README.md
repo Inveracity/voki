@@ -130,9 +130,9 @@ target "mytarget" {
     host = "address:22"
 
     step "file" {
-      source = "myfile.sh.tpl"
-      destination = "/tmp/myfile.sh"
-      mode = "0755"
+      source = "myfile.conf"
+      destination = "/var/myfile.conf"
+      mode = "0644"
     }
 }
 ```
