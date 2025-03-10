@@ -11,7 +11,7 @@ import (
 	"golang.org/x/crypto/ssh/agent"
 )
 
-func TestConnection(config targets.Target, command string) string {
+func TestConnection(config targets.Target, command string) (string, string, error) {
 	sock, err := sshAgent()
 	if err != nil {
 		log.Fatalln(err)
@@ -40,12 +40,12 @@ func TestConnection(config targets.Target, command string) string {
 	// Once a Session is created, you can execute a single command on
 	// the remote side using the Run method.
 	var b bytes.Buffer
+	var e bytes.Buffer
 	session.Stdout = &b
-	if err := session.Run(command); err != nil {
-		log.Fatal("Failed to run: " + err.Error())
-	}
+	session.Stderr = &e
+	err = session.Run(command)
 
-	return b.String()
+	return b.String(), e.String(), err
 }
 
 func sshAgent() (agent.ExtendedAgent, error) {

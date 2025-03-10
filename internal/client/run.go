@@ -31,9 +31,13 @@ func (c *Client) ExecuteSteps(target targets.Target, steps []targets.Step) {
 		case "cmd":
 			fmt.Println("Command", idx+1)
 			fmt.Fprintln(c.writer, color.BlueString(step.Command))
-			result := TestConnection(target, step.Command)
+			stdout, stderr, err := TestConnection(target, step.Command)
 			fmt.Println("Result:")
-			fmt.Fprintln(c.writer, color.GreenString(result))
+			if err != nil {
+				fmt.Fprintln(c.writer, color.RedString(stderr))
+				log.Fatalln(err.Error())
+			}
+			fmt.Fprintln(c.writer, color.GreenString(stdout))
 
 		// Copy a file to the remote server
 		case "file":
