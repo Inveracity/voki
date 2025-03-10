@@ -5,7 +5,7 @@ go 1.23.7
 require (
 	github.com/bramvdbogaerde/go-scp v1.5.0
 	github.com/fatih/color v1.14.1
-	github.com/hashicorp/hcl2 v0.0.0-20191002203319-fb75b3253c80
+	github.com/hashicorp/hcl/v2 v2.23.0
 	github.com/lithammer/dedent v1.1.0
 	github.com/pborman/indent v1.2.1
 	github.com/spf13/cobra v1.9.1
