@@ -5,8 +5,13 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/inveracity/voki/internal/client"
+)
+
+var (
+	user string
 )
 
 type CmdRun struct {
@@ -26,11 +31,13 @@ func (h *CmdRun) Command() *cobra.Command {
 			if err != nil {
 				log.Fatalln(err)
 			}
-			h.Client.Run(string(content))
+			h.Client.Run(string(content), user)
 			return nil
 		},
 	}
 
 	cmd.Flags().SortFlags = false
+	cmd.Flags().StringVarP(&user, "user", "u", "", "user")
+	viper.BindPFlag("user", cmd.PersistentFlags().Lookup("user"))
 	return cmd
 }

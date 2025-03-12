@@ -10,10 +10,17 @@ import (
 	"github.com/inveracity/voki/internal/targets"
 )
 
-func (c *Client) Run(hcl string) {
+func (c *Client) Run(hcl string, username string) {
 	config, err := targets.ParseString([]byte(hcl))
 	if err != nil {
 		log.Fatalln(err)
+	}
+
+	// Set the username
+	if username != "" {
+		for idx := range config.Targets {
+			config.Targets[idx].User = &username
+		}
 	}
 
 	for _, target := range config.Targets {
@@ -51,7 +58,7 @@ func (c *Client) ExecuteSteps(target targets.Target, steps []targets.Step) {
 				Mode:        step.Mode,
 			}
 
-			TransferFile(ctx, target.User, target.Host, file)
+			TransferFile(ctx, *target.User, target.Host, file)
 
 			fmt.Println("Result:")
 			fmt.Fprintln(c.writer, color.GreenString(step.Destination))

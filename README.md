@@ -59,7 +59,12 @@ target "a label for the configuration" {
 }
 ```
 
-- `user` the username to connect to the remote host
+- `user` the username to connect to the remote host.
+
+    The user variable can also be provided via a flag `voki -u USERNAME`
+
+    Or via `.voki.env` see the [configuration section](#configuration)
+
 - `host` the address including the port number separated by a colon: `ipaddress:port`
 
 ### Steps
@@ -221,6 +226,17 @@ in the `hello.sh.tpl` the `Name` is being passed in before execution.
 ```sh
 echo "hello {{ .Name }}"
 ```
+
+## Configuration
+
+Some variables can be specified via a `.voki.env` file.
+
+```sh
+# .voki.env
+user="myuser"
+```
+
+With this set, the target section no longer requires the `user` variables.
 
 ## Build from source
 

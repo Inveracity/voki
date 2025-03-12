@@ -16,10 +16,10 @@ type Configuration struct {
 }
 
 type Target struct {
-	Name  string `hcl:"name,label"`
-	User  string `hcl:"user"`
-	Host  string `hcl:"host"`
-	Steps []Step `hcl:"step,block"`
+	Name  string  `hcl:"name,label"`
+	User  *string `hcl:"user"`
+	Host  string  `hcl:"host"`
+	Steps []Step  `hcl:"step,block"`
 }
 
 type Step struct {

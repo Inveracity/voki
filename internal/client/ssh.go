@@ -17,7 +17,7 @@ func TestConnection(config targets.Target, command string) (string, string, erro
 		log.Fatalln(err)
 	}
 
-	cfg, err := makeSshConfig(config.User, sock)
+	cfg, err := makeSshConfig(*config.User, sock)
 	if err != nil {
 		log.Fatalln(err)
 	}
