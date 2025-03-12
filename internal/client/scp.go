@@ -17,7 +17,7 @@ type File struct {
 }
 
 // Transfer a file to a remote server
-func TransferFile(ctx context.Context, user, host string, file File) {
+func TransferFile(ctx context.Context, user, host string, file File, tempdir string) {
 	clientConfig, _ := auth.SshAgent(user, ssh.InsecureIgnoreHostKey())
 
 	client := scp.NewClient(host, &clientConfig)
@@ -27,11 +27,13 @@ func TransferFile(ctx context.Context, user, host string, file File) {
 		log.Fatalln("Couldn't establish a connection to the remote server ", err)
 	}
 
-	f, _ := os.Open(file.Source)
+	f, err := os.Open(file.Source)
+	if err != nil {
+		log.Fatalln("Could not read file", err.Error())
+	}
 	defer client.Close()
 	defer f.Close()
-
-	err = client.CopyFromFile(ctx, *f, file.Destination, file.Mode)
+	err = client.CopyFromFile(ctx, *f, tempdir+file.Destination, file.Mode)
 
 	if err != nil {
 		log.Fatalln("Error while copying file ", err)

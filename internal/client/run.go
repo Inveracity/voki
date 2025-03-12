@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"path"
 
 	"github.com/fatih/color"
 
@@ -51,7 +53,7 @@ func (c *Client) ExecuteSteps(target targets.Target, steps []targets.Step) {
 			}
 
 			step.Command = cmd
-			stdout, stderr, err := TestConnection(target, step.Command)
+			stdout, stderr, err := RunCommand(target, step.Command)
 
 			fmt.Println("Result:")
 			if err != nil {
@@ -72,9 +74,39 @@ func (c *Client) ExecuteSteps(target targets.Target, steps []targets.Step) {
 				Mode:        step.Mode,
 			}
 
-			TransferFile(ctx, *target.User, target.Host, file)
+			temp, err := os.CreateTemp("", ".voki-*")
+			defer temp.Close()
+			if err != nil {
+				log.Fatalln(err)
+			}
 
-			fmt.Println("Result:")
+			_, stderr, err := RunCommand(target, "mkdir -p "+temp.Name()+path.Dir(file.Destination))
+			if err != nil {
+				fmt.Fprintln(c.writer, color.RedString(stderr))
+				log.Fatalln(err.Error())
+			}
+
+			TransferFile(ctx, *target.User, target.Host, file, temp.Name())
+
+			_, stderr, err = RunCommand(target, "sudo mv "+temp.Name()+file.Destination+" "+file.Destination)
+			if err != nil {
+				fmt.Fprintln(c.writer, color.RedString(stderr))
+				log.Fatalln(err.Error())
+			}
+
+			if step.Chown != "" {
+				_, stderr, err := RunCommand(target, "sudo chown "+step.Chown+" "+step.Destination)
+				if err != nil {
+					fmt.Fprintln(c.writer, color.RedString(stderr))
+					log.Fatalln(err.Error())
+				}
+			}
+
+			_, stderr, err = RunCommand(target, "sudo rm -rf "+temp.Name())
+			if err != nil {
+				fmt.Fprintln(c.writer, color.RedString(stderr))
+				log.Fatalln(err.Error())
+			}
 			fmt.Fprintln(c.writer, color.GreenString(step.Destination))
 
 		// Parse a file with steps in it and run them

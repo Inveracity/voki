@@ -32,6 +32,7 @@ type Step struct {
 	Mode        string   `hcl:"mode,optional"`
 	Sudo        bool     `hcl:"sudo,optional"`
 	Shell       string   `hcl:"shell,optional"`
+	Chown       string   `hcl:"chown,optional"`
 }
 
 type Task struct {

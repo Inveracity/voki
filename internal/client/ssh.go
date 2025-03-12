@@ -11,7 +11,7 @@ import (
 	"golang.org/x/crypto/ssh/agent"
 )
 
-func TestConnection(config targets.Target, command string) (string, string, error) {
+func RunCommand(config targets.Target, command string) (string, string, error) {
 	sock, err := sshAgent()
 	if err != nil {
 		log.Fatalln(err)
