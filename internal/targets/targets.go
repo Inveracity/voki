@@ -30,6 +30,8 @@ type Step struct {
 	Source      string   `hcl:"source,optional"`
 	Destination string   `hcl:"destination,optional"`
 	Mode        string   `hcl:"mode,optional"`
+	Sudo        bool     `hcl:"sudo,optional"`
+	Shell       string   `hcl:"shell,optional"`
 }
 
 type Task struct {

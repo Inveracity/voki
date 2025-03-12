@@ -97,6 +97,8 @@ Cmd runs a command or multiple commands on the configured target.
 Cmd takes the following variables:
 
 - `command` commands to run on the remote host.
+- `sudo` boolean value to execute commands with sudo (defaults to `false`)
+- `shell` which shell to use, i.e. `bash` or `sh` (defaults to `bash`)
 
 ```hcl
 target "mytarget" {
@@ -109,6 +111,8 @@ target "mytarget" {
 
     // Multiline input for multiple commands and scripts.
     step "cmd" {
+        sudo = true
+        shell = "sh"
         command = <<-EOT
             echo "1"
             echo "2"
