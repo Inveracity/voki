@@ -35,6 +35,7 @@ func (a *App) Run() error {
 
 	rootCmd.AddCommand((&CmdRun{Client: &a.Client}).Command())
 	rootCmd.AddCommand((&CmdFmt{Client: &a.Client}).Command())
+	rootCmd.AddCommand((&CmdVersion{}).Command())
 	rootCmd.Root().CompletionOptions.DisableDefaultCmd = true
 
 	return rootCmd.Execute()
