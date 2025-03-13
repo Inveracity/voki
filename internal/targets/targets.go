@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclparse"
+	"github.com/inveracity/voki/internal/targets/inline"
 	"github.com/zclconf/go-cty/cty/function"
 )
 
@@ -40,27 +41,18 @@ type Task struct {
 	Steps []Step `hcl:"step,block"`
 }
 
-func ParseFile(filename string) (*Configuration, error) {
+// ParseHCL takes a byte array, from os.ReadFile
+func ParseHCL(in []byte) (*Configuration, error) {
 	parser := hclparse.NewParser()
-	file, diags := parser.ParseHCLFile(filename)
-	return parse(file, diags)
-}
-
-func ParseString(hcl []byte) (*Configuration, error) {
-	parser := hclparse.NewParser()
-	file, diags := parser.ParseHCL(hcl, "stdin")
-	return parse(file, diags)
-}
-
-func parse(file *hcl.File, diags hcl.Diagnostics) (*Configuration, error) {
+	file, diags := parser.ParseHCL(in, "stdin")
 	if diags.HasErrors() {
 		log.Fatal(diags)
 	}
 
 	ctx := &hcl.EvalContext{
 		Functions: map[string]function.Function{
-			"file":     FileFunc,
-			"template": TemplateFunc,
+			"file":     inline.FileFunc,
+			"template": inline.TemplateFunc,
 		},
 	}
 

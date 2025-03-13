@@ -1,4 +1,4 @@
-package targets
+package inline
 
 import (
 	"bytes"
@@ -24,12 +24,12 @@ var TemplateFunc = function.New(&function.Spec{
 	Type: function.StaticReturnType(cty.String),
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 		in := args[0].AsString()
-		out, err := Template(in, args[1].AsValueMap())
+		out, err := renderTemplate(in, args[1].AsValueMap())
 		return cty.StringVal(string(out)), err
 	},
 })
 
-func Template(file string, data map[string]cty.Value) (string, error) {
+func renderTemplate(file string, data map[string]cty.Value) (string, error) {
 	t, err := template.ParseFiles(file)
 	t.Option("missingkey=error")
 	if err != nil {
