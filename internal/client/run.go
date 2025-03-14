@@ -14,7 +14,7 @@ import (
 )
 
 func (c *Client) Run(hcl string, username string) {
-	config, err := targets.ParseHCL([]byte(hcl))
+	config, err := targets.ParseHCL([]byte(hcl), c.EvalContext)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -126,7 +126,7 @@ func (c *Client) ExecuteSteps(target targets.Target, steps []targets.Step) {
 		// Parse a file with steps in it and run them
 		case "task":
 			// Recursively run a task
-			config, err := targets.ParseHCL([]byte(step.Task))
+			config, err := targets.ParseHCL([]byte(step.Task), c.EvalContext)
 			if err != nil {
 				log.Fatalln(err)
 			}
