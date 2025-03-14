@@ -22,6 +22,7 @@ type Step struct {
 	Task        string   `hcl:"task,optional"`
 	Use         []string `hcl:"use,optional"`
 	Source      string   `hcl:"source,optional"`
+	Data        string   `hcl:"data,optional"`
 	Destination string   `hcl:"destination,optional"`
 	Mode        string   `hcl:"mode,optional"`
 	Sudo        bool     `hcl:"sudo,optional"`

@@ -67,7 +67,11 @@ func (c *Client) ExecuteSteps(target targets.Target, steps []targets.Step) {
 		case "file":
 			ctx := context.Background()
 			fmt.Println("File", idx+1)
-			fmt.Fprintln(c.writer, color.BlueString(step.Source))
+			temp, err := os.CreateTemp("", ".voki-*")
+			defer temp.Close()
+			if err != nil {
+				log.Fatalln(err)
+			}
 
 			file := ssh.File{
 				Source:      step.Source,
@@ -75,10 +79,16 @@ func (c *Client) ExecuteSteps(target targets.Target, steps []targets.Step) {
 				Mode:        step.Mode,
 			}
 
-			temp, err := os.CreateTemp("", ".voki-*")
-			defer temp.Close()
-			if err != nil {
-				log.Fatalln(err)
+			if step.Source != "" {
+				fmt.Fprintln(c.writer, color.BlueString(step.Source))
+			}
+
+			if step.Data != "" && step.Source == "" {
+				fmt.Fprintln(c.writer, color.BlueString(step.Data))
+				if err := os.WriteFile(temp.Name()+"render.tmp", []byte(step.Data), 0644); err != nil {
+					log.Fatalln(err)
+				}
+				file.Source = temp.Name() + "render.tmp"
 			}
 
 			_, stderr, err := ssh.RunCommand(target, "mkdir -p "+temp.Name()+path.Dir(file.Destination))
@@ -88,6 +98,8 @@ func (c *Client) ExecuteSteps(target targets.Target, steps []targets.Step) {
 			}
 
 			ssh.TransferFile(ctx, *target.User, target.Host, file, temp.Name())
+
+			fmt.Println("Result:")
 
 			_, stderr, err = ssh.RunCommand(target, "sudo mv "+temp.Name()+file.Destination+" "+file.Destination)
 			if err != nil {
@@ -108,6 +120,7 @@ func (c *Client) ExecuteSteps(target targets.Target, steps []targets.Step) {
 				fmt.Fprintln(c.writer, color.RedString(stderr))
 				log.Fatalln(err.Error())
 			}
+
 			fmt.Fprintln(c.writer, color.GreenString(step.Destination))
 
 		// Parse a file with steps in it and run them

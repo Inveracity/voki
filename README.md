@@ -130,6 +130,7 @@ File copies a file from the local filesystem to the remote filesystem.
 File takes the following variables:
 
 - `source` the path on the host voki is executed on.
+- `data` a string to write to the destination file. If `source` is set, then `data` is ignored.
 - `destination` the path on the remote host where the file should be copied to.
 - `mode` the permissions on the file on the remote host.
 
@@ -140,6 +141,21 @@ target "mytarget" {
 
     step "file" {
       source = "myfile.conf"
+      destination = "/var/myfile.conf"
+      mode = "0644"
+    }
+}
+```
+
+it's also possible to supply data, which enables use of the inline functions `file()` and `template()`
+
+```hcl
+target "mytarget" {
+    user = "root"
+    host = "address:22"
+
+    step "file" {
+      data = "content for the file"
       destination = "/var/myfile.conf"
       mode = "0644"
     }
