@@ -231,13 +231,37 @@ in the `hello.sh.tpl` the `Name` is being passed in before execution.
 echo "hello {{ .Name }}"
 ```
 
-## Configuration
+### Defining variables
 
-Some variables can be specified via a `.voki.env` file.
+The target file can have variables set in the following way
+
+```hcl
+// target.hcl
+name = "my name"
+
+target "myserver" {
+    user = "root"
+    host = "xyz:22"
+
+    step "cmd" {
+        command = "echo ${name}"
+    }
+}
+```
+
+## Environment variables
+
+Environment variables can be specified via a `.voki.env` file.
 
 ```sh
 # .voki.env
 user="myuser"
+```
+
+or with `VOKI_` prefixed variables
+
+```sh
+VOKI_USER="me" voki run target.hcl
 ```
 
 With this set, the target section no longer requires the `user` variables.

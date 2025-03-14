@@ -1,9 +1,12 @@
 package targets
 
+import "github.com/hashicorp/hcl/v2"
+
 type Configuration struct {
 	Targets []Target `hcl:"target,block"`
 	Tasks   []Task   `hcl:"task,block"`
 	Steps   []Step   `hcl:"step,block"`
+	Remain  hcl.Body `hcl:",remain"`
 }
 
 type Target struct {
