@@ -7,8 +7,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/fatih/color"
-
+	"github.com/inveracity/voki/internal/print"
 	"github.com/inveracity/voki/internal/ssh"
 	"github.com/inveracity/voki/internal/targets"
 )
@@ -27,20 +26,20 @@ func (c *Client) Run(hcl string, username string) {
 	}
 
 	for _, target := range config.Targets {
-		fmt.Println("==== " + target.Name + " ====\n")
+		print.Title(target.Name)
 
 		c.ExecuteSteps(target, target.Steps)
 	}
 }
 
 func (c *Client) ExecuteSteps(target targets.Target, steps []targets.Step) {
-	for idx, step := range steps {
+	for _, step := range steps {
 		switch step.Action {
 
 		// Run commands on the remote server
 		case "cmd":
-			fmt.Println("Command", idx+1)
-			fmt.Fprintln(c.writer, color.BlueString(step.Command))
+			fmt.Println("Command:")
+			print.Info(step.Command)
 
 			// Default to bash
 			if step.Shell == "" {
@@ -58,15 +57,16 @@ func (c *Client) ExecuteSteps(target targets.Target, steps []targets.Step) {
 
 			fmt.Println("Result:")
 			if err != nil {
-				fmt.Fprintln(c.writer, color.RedString(stderr))
-				log.Fatalln(err.Error())
+				print.Error(stderr)
+				print.Fatal(err)
 			}
-			fmt.Fprintln(c.writer, color.GreenString(stdout))
+
+			print.Success(stdout)
 
 		// Copy a file to the remote server
 		case "file":
 			ctx := context.Background()
-			fmt.Println("File", idx+1)
+			fmt.Println("File:")
 			temp, err := os.CreateTemp("", ".voki-*")
 			defer temp.Close()
 			if err != nil {
@@ -80,11 +80,11 @@ func (c *Client) ExecuteSteps(target targets.Target, steps []targets.Step) {
 			}
 
 			if step.Source != "" {
-				fmt.Fprintln(c.writer, color.BlueString(step.Source))
+				print.Info(step.Source)
 			}
 
 			if step.Data != "" && step.Source == "" {
-				fmt.Fprintln(c.writer, color.BlueString(step.Data))
+				print.Info(step.Data)
 				if err := os.WriteFile(temp.Name()+"render.tmp", []byte(step.Data), 0644); err != nil {
 					log.Fatalln(err)
 				}
@@ -93,8 +93,8 @@ func (c *Client) ExecuteSteps(target targets.Target, steps []targets.Step) {
 
 			_, stderr, err := ssh.RunCommand(target, "mkdir -p "+temp.Name()+path.Dir(file.Destination))
 			if err != nil {
-				fmt.Fprintln(c.writer, color.RedString(stderr))
-				log.Fatalln(err.Error())
+				print.Error(stderr)
+				print.Fatal(err)
 			}
 
 			ssh.TransferFile(ctx, *target.User, target.Host, file, temp.Name())
@@ -103,32 +103,32 @@ func (c *Client) ExecuteSteps(target targets.Target, steps []targets.Step) {
 
 			_, stderr, err = ssh.RunCommand(target, "sudo mv "+temp.Name()+file.Destination+" "+file.Destination)
 			if err != nil {
-				fmt.Fprintln(c.writer, color.RedString(stderr))
-				log.Fatalln(err.Error())
+				print.Error(stderr)
+				print.Fatal(err)
 			}
 
 			if step.Chown != "" {
 				_, stderr, err := ssh.RunCommand(target, "sudo chown "+step.Chown+" "+step.Destination)
 				if err != nil {
-					fmt.Fprintln(c.writer, color.RedString(stderr))
-					log.Fatalln(err.Error())
+					print.Error(stderr)
+					print.Fatal(err)
 				}
 			}
 
 			_, stderr, err = ssh.RunCommand(target, "sudo rm -rf "+temp.Name())
 			if err != nil {
-				fmt.Fprintln(c.writer, color.RedString(stderr))
-				log.Fatalln(err.Error())
+				print.Error(stderr)
+				print.Fatal(err)
 			}
 
-			fmt.Fprintln(c.writer, color.GreenString(step.Destination))
+			print.Success(step.Destination)
 
 		// Parse a file with steps in it and run them
 		case "task":
 			// Recursively run a task
 			config, err := targets.ParseHCL([]byte(step.Task), c.EvalContext)
 			if err != nil {
-				log.Fatalln(err)
+				print.Fatal(err)
 			}
 			c.ExecuteSteps(target, config.Steps)
 
