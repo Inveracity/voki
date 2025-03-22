@@ -4,9 +4,11 @@ import (
 	"log"
 	"os"
 
+	"github.com/fatih/color"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/vbauerster/mpb/v8"
 	"github.com/zclconf/go-cty/cty/function"
 
 	"github.com/inveracity/voki/internal/client"
@@ -33,10 +35,21 @@ func (h *CmdRun) Command() *cobra.Command {
 				log.Fatalln("expected 1 or more arguments")
 			}
 
-			// There should always be at least one worker
-			if parallel < 1 {
+			// There should always be at least one worker running
+			// If -p 0 or -p 1 is passed, we run in serial mode
+			h.Client.Parallel = true
+			if parallel < 1 || parallel == 1 {
 				parallel = 1
+				h.Client.Parallel = false
 			}
+
+			// Only progressbars will print when running in parallel mode
+			h.Client.Printer.Silent = h.Client.Parallel
+
+			h.Client.Bar = mpb.New(
+				mpb.WithOutput(color.Output),
+				mpb.WithAutoRefresh(),
+			)
 
 			// Start the worker(s)
 			targetfiles := make(chan string, len(args))
@@ -56,6 +69,8 @@ func (h *CmdRun) Command() *cobra.Command {
 			for range args {
 				<-results
 			}
+
+			h.Client.Bar.Wait()
 
 			return nil
 		},
