@@ -282,6 +282,22 @@ VOKI_USER="me" voki run target.hcl
 
 With this set, the target section no longer requires the `user` variables.
 
+## Multiple targets (and parallelization)
+
+Voki supports specifying multiple targets and run them sequentially or in parallel.
+
+Default is sequential by simply invoking multiple target files:
+
+```sh
+voki run target1.hcl target2.hcl ... etc.
+```
+
+and to run them in parallel add the `-p <number>` specifying how many to run in parallel:
+
+```sh
+voki run -p 2 target1.hcl target2.hcl ... etc.
+```
+
 ## Build from source
 
 Ensure Go 1.23 or newer is installed.
