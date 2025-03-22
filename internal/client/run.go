@@ -32,7 +32,7 @@ func (c *Client) Run(hcl string, username string) {
 		bar := c.Bar.AddBar(0,
 			mpb.BarOptional(mpb.BarWidth(40), true),
 			mpb.PrependDecorators(
-				decor.Name(target.Name),
+				decor.Name(fmt.Sprintf("%-27s", target.Name)),
 			),
 			mpb.AppendDecorators(
 				decor.Counters(decor.CountersNoUnit(""), "%d / %d"),
