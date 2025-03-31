@@ -313,3 +313,19 @@ Install into `/home/$(USER)/.local/bin`
 ```sh
 make install
 ```
+
+## Vault dev mode
+
+```sh
+curl -L https://releases.hashicorp.com/vault/1.19.0/vault_1.19.0_linux_amd64.zip -O
+unzip vault_1.19.0_linux_amd64.zip
+rm -f LICENSE.txt
+rm -f vault_1.19.0_linux_amd64.zip
+install vault ~/.local/bin/vault
+rm -f vault
+
+export VAULT_DEV_ROOT_TOKEN_ID=123456
+vault server -dev
+export VAULT_ADDR='http://127.0.0.1:8200'
+
+```

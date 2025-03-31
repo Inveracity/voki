@@ -101,6 +101,7 @@ func worker(client *client.Client, user string, targetfiles <-chan string, resul
 			Functions: map[string]function.Function{
 				"file":     inline.FileFunc,
 				"template": inline.TemplateFunc,
+				"vault":    inline.VaultFunc,
 			},
 			Variables: variables,
 		}
