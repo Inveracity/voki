@@ -17,6 +17,7 @@ type Client struct {
 	Bar         *mpb.Progress
 	Parallel    bool
 	Printer     *printer.Printer
+	VaultToken  *string
 }
 
 func New() *Client {

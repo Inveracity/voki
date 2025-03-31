@@ -2,6 +2,7 @@ package cli
 
 import (
 	"log"
+	"maps"
 	"os"
 
 	"github.com/fatih/color"
@@ -9,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/vbauerster/mpb/v8"
+	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 
 	"github.com/inveracity/voki/internal/client"
@@ -17,8 +19,9 @@ import (
 )
 
 var (
-	user     string
-	parallel int
+	user       string
+	parallel   int
+	vaulttoken string
 )
 
 type CmdRun struct {
@@ -33,6 +36,10 @@ func (h *CmdRun) Command() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				log.Fatalln("expected 1 or more arguments")
+			}
+
+			if vaulttoken != "" {
+				h.Client.VaultToken = &vaulttoken
 			}
 
 			// There should always be at least one worker running
@@ -79,8 +86,11 @@ func (h *CmdRun) Command() *cobra.Command {
 	cmd.Flags().SortFlags = false
 	cmd.Flags().StringVarP(&user, "user", "u", "", "user")
 	cmd.Flags().IntVarP(&parallel, "parallel", "p", 1, "number of parallel runs")
+	cmd.Flags().StringVar(&vaulttoken, "vault-token", "", "vault token")
 	viper.BindPFlag("user", cmd.PersistentFlags().Lookup("user"))
 	viper.BindPFlag("parallel", cmd.PersistentFlags().Lookup("parallel"))
+	viper.BindPFlag("vault-token", cmd.PersistentFlags().Lookup("vault_token"))
+
 	return cmd
 }
 
@@ -97,11 +107,25 @@ func worker(client *client.Client, user string, targetfiles <-chan string, resul
 			log.Fatalln(err)
 		}
 
+		// If there's a vault token, assume vault secrets can be loaded
+		vaultVars := map[string]cty.Value{"nothing": cty.StringVal("nothing")}
+		if client.VaultToken != nil {
+			v := targets.VaultConfig{
+				VaultToken: *client.VaultToken,
+			}
+			vaultVars, err = v.LoadVault(content)
+			if err != nil {
+				log.Fatalln("load vault ", err)
+			}
+
+		}
+
+		maps.Copy(variables, vaultVars)
+
 		client.EvalContext = &hcl.EvalContext{
 			Functions: map[string]function.Function{
 				"file":     inline.FileFunc,
 				"template": inline.TemplateFunc,
-				"vault":    inline.VaultFunc,
 			},
 			Variables: variables,
 		}
