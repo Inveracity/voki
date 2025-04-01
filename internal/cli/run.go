@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -38,8 +37,6 @@ func (h *CmdRun) Command() *cobra.Command {
 			if len(args) == 0 {
 				log.Fatalln("expected 1 or more arguments")
 			}
-
-			fmt.Println(vaulttoken, vaultaddr)
 
 			if vaulttoken != "" {
 				h.Client.VaultToken = &vaulttoken
