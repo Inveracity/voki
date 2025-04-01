@@ -16,10 +16,13 @@ func InitializeEnv(cmd *cobra.Command) {
 	v.SetEnvPrefix("VOKI")
 	v.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	v.AutomaticEnv()
-	v.SetConfigType("dotenv")
-	v.SetConfigFile(".voki.env")
+	v.SetConfigType("hcl")
+	v.SetConfigFile("voki-config.hcl")
 	v.AddConfigPath(".")
-	_ = v.ReadInConfig()
+	err := v.ReadInConfig()
+	if err != nil {
+		log.Printf("Error reading config file: %s", err)
+	}
 
 	bindFlags(cmd, v)
 }
