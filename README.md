@@ -63,7 +63,7 @@ target "a label for the configuration" {
 
     The user variable can also be provided via a flag `voki -u USERNAME`
 
-    Or via `.voki.env` see the [configuration section](#configuration)
+    Or via `voki-config.hcl` see the [configuration section](#configuration)
 
 - `host` the address including the port number separated by a colon: `ipaddress:port`
 
@@ -265,13 +265,15 @@ target "myserver" {
 }
 ```
 
-## Environment variables
+## Configuration
 
-Environment variables can be specified via a `.voki.env` file.
+Configuration and environment variables can be specified via a `voki-config.hcl` file.
 
 ```sh
-# .voki.env
+# voki-config.hcl
 user="myuser"
+vault-address="http://127.0.0.1:8200"
+vault-token="123456"
 ```
 
 or with `VOKI_` prefixed variables
@@ -298,6 +300,56 @@ and to run them in parallel add the `-p <number>` specifying how many to run in 
 voki run -p 2 target1.hcl target2.hcl ... etc.
 ```
 
+## Vault integration
+
+Install vault and run it in _dev mode_ to test locally.
+
+```sh
+cd /tmp
+curl -L https://releases.hashicorp.com/vault/1.19.0/vault_1.19.0_linux_amd64.zip -O
+unzip vault_1.19.0_linux_amd64.zip
+rm -f LICENSE.txt
+rm -f vault_1.19.0_linux_amd64.zip
+install vault ~/.local/bin/vault
+rm -f vault
+cd
+
+export VAULT_DEV_ROOT_TOKEN_ID=123456
+vault server -dev
+export VAULT_ADDR='http://127.0.0.1:8200'
+```
+
+add a secret to vault
+
+```sh
+vault kv put -mount=secret voki hello=world
+```
+
+Now use the secret in a target file
+
+```hcl
+
+vault {
+    mountpath = "secret"
+    path = "voki"
+}
+
+target "myserver" {
+    host = "127.0.0.1:22"
+    user = "root"
+
+    step "cmd" {
+        command = "echo ${vault.hello}"
+    }
+}
+```
+
+and invoke voki
+
+```sh
+VOKI_VAULT_TOKEN=123456 VOKI_VAULT_ADDR="http://127.0.0.1:8200" voki run target.hcl
+```
+
 ## Build from source
 
 Ensure Go 1.23 or newer is installed.
@@ -312,20 +364,4 @@ Install into `/home/$(USER)/.local/bin`
 
 ```sh
 make install
-```
-
-## Vault dev mode
-
-```sh
-curl -L https://releases.hashicorp.com/vault/1.19.0/vault_1.19.0_linux_amd64.zip -O
-unzip vault_1.19.0_linux_amd64.zip
-rm -f LICENSE.txt
-rm -f vault_1.19.0_linux_amd64.zip
-install vault ~/.local/bin/vault
-rm -f vault
-
-export VAULT_DEV_ROOT_TOKEN_ID=123456
-vault server -dev
-export VAULT_ADDR='http://127.0.0.1:8200'
-
 ```

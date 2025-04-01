@@ -18,6 +18,7 @@ type Client struct {
 	Parallel    bool
 	Printer     *printer.Printer
 	VaultToken  *string
+	VaultAddr   *string
 }
 
 func New() *Client {

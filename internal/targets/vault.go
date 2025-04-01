@@ -14,11 +14,13 @@ import (
 )
 
 type VaultConfig struct {
-	VaultToken string
+	Token string
+	Addr  string
 }
 
 type Vault struct {
 	Mountpath string `hcl:"mountpath"`
+	Path      string `hcl:"path"`
 }
 
 var vaultSchema = &hcl.BodySchema{
@@ -32,6 +34,7 @@ var vaultSchema = &hcl.BodySchema{
 var vaultBlockSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{
 		{Name: "mountpath"},
+		{Name: "path"},
 	},
 }
 
@@ -62,30 +65,38 @@ func (v *VaultConfig) LoadVault(in []byte) (map[string]cty.Value, error) {
 		if decodeDiags.HasErrors() {
 			log.Fatalf("decode mountpath attr error: %v", decodeDiags)
 		}
-		bleg, err := v.getSecret(c.Mountpath)
-		fmt.Println(bleg)
-		return bleg, err
 	}
 
-	return map[string]cty.Value{}, nil
+	if attr, exists := blockVault.Attributes["path"]; exists {
+		decodeDiags := gohcl.DecodeExpression(attr.Expr, nil, &c.Path)
+		if decodeDiags.HasErrors() {
+			log.Fatalf("decode path attr error: %v", decodeDiags)
+		}
+	}
+
+	if c.Mountpath == "" || c.Path == "" {
+		return nil, fmt.Errorf("mountpath and path are required")
+	}
+
+	return v.getSecret(c.Mountpath, c.Path)
 }
 
-func (v *VaultConfig) getSecret(mountpath string) (map[string]cty.Value, error) {
+func (v *VaultConfig) getSecret(mountpath, path string) (map[string]cty.Value, error) {
 	ctx := context.Background()
 
 	client, err := vault.New(
-		vault.WithAddress("http://127.0.0.1:8200"),
+		vault.WithAddress(v.Addr),
 		vault.WithRequestTimeout(30*time.Second),
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if err := client.SetToken(v.VaultToken); err != nil {
+	if err := client.SetToken(v.Token); err != nil {
 		log.Fatal(err)
 	}
 
-	s, err := client.Secrets.KvV2Read(ctx, mountpath, vault.WithMountPath("secret"))
+	s, err := client.Secrets.KvV2Read(ctx, path, vault.WithMountPath(mountpath))
 	if err != nil {
 		log.Fatal("vault ", err)
 	}

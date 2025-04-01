@@ -1,8 +1,8 @@
 package cli
 
 import (
+	"fmt"
 	"log"
-	"maps"
 	"os"
 
 	"github.com/fatih/color"
@@ -22,6 +22,7 @@ var (
 	user       string
 	parallel   int
 	vaulttoken string
+	vaultaddr  string
 )
 
 type CmdRun struct {
@@ -38,8 +39,14 @@ func (h *CmdRun) Command() *cobra.Command {
 				log.Fatalln("expected 1 or more arguments")
 			}
 
+			fmt.Println(vaulttoken, vaultaddr)
+
 			if vaulttoken != "" {
 				h.Client.VaultToken = &vaulttoken
+			}
+
+			if vaultaddr != "" {
+				h.Client.VaultAddr = &vaultaddr
 			}
 
 			// There should always be at least one worker running
@@ -87,9 +94,11 @@ func (h *CmdRun) Command() *cobra.Command {
 	cmd.Flags().StringVarP(&user, "user", "u", "", "user")
 	cmd.Flags().IntVarP(&parallel, "parallel", "p", 1, "number of parallel runs")
 	cmd.Flags().StringVar(&vaulttoken, "vault-token", "", "vault token")
+	cmd.Flags().StringVar(&vaultaddr, "vault-addr", "https://127.0.0.1:8200", "vault address")
 	viper.BindPFlag("user", cmd.PersistentFlags().Lookup("user"))
 	viper.BindPFlag("parallel", cmd.PersistentFlags().Lookup("parallel"))
 	viper.BindPFlag("vault-token", cmd.PersistentFlags().Lookup("vault_token"))
+	viper.BindPFlag("vault-addr", cmd.PersistentFlags().Lookup("vault_addr"))
 
 	return cmd
 }
@@ -108,10 +117,11 @@ func worker(client *client.Client, user string, targetfiles <-chan string, resul
 		}
 
 		// If there's a vault token, assume vault secrets can be loaded
-		vaultVars := map[string]cty.Value{"nothing": cty.StringVal("nothing")}
+		vaultVars := map[string]cty.Value{}
 		if client.VaultToken != nil {
 			v := targets.VaultConfig{
-				VaultToken: *client.VaultToken,
+				Token: *client.VaultToken,
+				Addr:  *client.VaultAddr,
 			}
 			vaultVars, err = v.LoadVault(content)
 			if err != nil {
@@ -120,14 +130,15 @@ func worker(client *client.Client, user string, targetfiles <-chan string, resul
 
 		}
 
-		maps.Copy(variables, vaultVars)
-
 		client.EvalContext = &hcl.EvalContext{
 			Functions: map[string]function.Function{
 				"file":     inline.FileFunc,
 				"template": inline.TemplateFunc,
 			},
-			Variables: variables,
+			Variables: map[string]cty.Value{
+				"vault": cty.ObjectVal(vaultVars),
+				"var":   cty.ObjectVal(variables),
+			},
 		}
 
 		client.Run(string(content), user)
