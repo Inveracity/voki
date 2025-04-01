@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"maps"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/hcl/v2"
@@ -53,32 +55,59 @@ func (v *VaultConfig) LoadVault(in []byte) (map[string]cty.Value, error) {
 
 	vaultBody, diags := file.Body.Content(vaultSchema)
 
-	// TODO: if the vault block is not in the hcl file body, this crashes with a runtime error index out of range [0]
-	blockVault, blockDiags := vaultBody.Blocks[0].Body.Content(vaultBlockSchema)
-	if blockDiags.HasErrors() {
-		return nil, err
-	}
+	secrets := map[string]cty.Value{}
+	for _, block := range vaultBody.Blocks {
+		blockVault, blockDiags := block.Body.Content(vaultBlockSchema)
 
-	var c = &Vault{}
-	if attr, exists := blockVault.Attributes["mountpath"]; exists {
-		decodeDiags := gohcl.DecodeExpression(attr.Expr, nil, &c.Mountpath)
-		if decodeDiags.HasErrors() {
-			log.Fatalf("decode mountpath attr error: %v", decodeDiags)
+		if blockDiags.HasErrors() {
+			return nil, err
 		}
-	}
 
-	if attr, exists := blockVault.Attributes["path"]; exists {
-		decodeDiags := gohcl.DecodeExpression(attr.Expr, nil, &c.Path)
-		if decodeDiags.HasErrors() {
-			log.Fatalf("decode path attr error: %v", decodeDiags)
+		var c = &Vault{}
+		if attr, exists := blockVault.Attributes["mountpath"]; exists {
+			decodeDiags := gohcl.DecodeExpression(attr.Expr, nil, &c.Mountpath)
+			if decodeDiags.HasErrors() {
+				log.Fatalf("decode mountpath attr error: %v", decodeDiags)
+			}
 		}
+
+		if attr, exists := blockVault.Attributes["path"]; exists {
+			decodeDiags := gohcl.DecodeExpression(attr.Expr, nil, &c.Path)
+			if decodeDiags.HasErrors() {
+				log.Fatalf("decode path attr error: %v", decodeDiags)
+			}
+		}
+
+		if c.Mountpath == "" || c.Path == "" {
+			return nil, fmt.Errorf("mountpath and path are required")
+		}
+
+		res, err := v.getSecret(c.Mountpath, c.Path)
+		if err != nil {
+			return nil, err
+		}
+
+		nesting := make(map[string]cty.Value)
+		keys := strings.Split(c.Path, "/")
+		fmt.Println(keys)
+		for i, p := range keys {
+			fmt.Println(i, len(keys)-1)
+			if i == 0 {
+				nesting = map[string]cty.Value{p: cty.ObjectVal(res)}
+			} else {
+				fmt.Println("-----", p, nesting)
+				nesting[p] = cty.ObjectVal(nesting)
+			}
+		}
+
+		fmt.Println(nesting)
+
+		//values := map[string]cty.Value{p: cty.ObjectVal(res)}
+
+		maps.Copy(secrets, nesting)
 	}
 
-	if c.Mountpath == "" || c.Path == "" {
-		return nil, fmt.Errorf("mountpath and path are required")
-	}
-
-	return v.getSecret(c.Mountpath, c.Path)
+	return secrets, nil
 }
 
 func (v *VaultConfig) getSecret(mountpath, path string) (map[string]cty.Value, error) {
