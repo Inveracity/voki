@@ -31,10 +31,10 @@ var TemplateFunc = function.New(&function.Spec{
 
 func renderTemplate(file string, data map[string]cty.Value) (string, error) {
 	t, err := template.ParseFiles(file)
-	t.Option("missingkey=error")
 	if err != nil {
 		return "", err
 	}
+	t.Option("missingkey=error")
 
 	dataMap := make(map[string]interface{})
 	for k, v := range data {

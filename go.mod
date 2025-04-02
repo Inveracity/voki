@@ -10,6 +10,7 @@ require (
 	github.com/hashicorp/vault-client-go v0.4.3
 	github.com/lithammer/dedent v1.1.0
 	github.com/pborman/indent v1.2.1
+	github.com/sergi/go-diff v1.3.1
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.6
 	github.com/spf13/viper v1.19.0

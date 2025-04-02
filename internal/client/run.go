@@ -139,6 +139,7 @@ func (c *Client) ExecuteSteps(target targets.Target, steps []targets.Step, bar *
 
 			c.Printer.Default("Result:")
 			if strings.ToLower(target.Host) == "localhost" {
+				targets.DiffFiles(file.Destination, file.Source)
 				if err := local.CopyFile(file.Source, file.Destination); err != nil {
 					c.Printer.Fatal(err)
 				}
