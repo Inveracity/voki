@@ -1,6 +1,0 @@
-one = bla
-two = 2
-three = bacon
-add another
-bacon juice
-{{ .Password }}
