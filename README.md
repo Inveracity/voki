@@ -327,12 +327,17 @@ vault kv put -mount=secret voki hello=world
 
 Now use the secret in a target file.
 
-Notice the path in the Vault block, it's required to access the secret i.e. `vault.voki.hello`. If the path was "jazz" it would be `vault.jazz.hello`.
+Notice the alias in the Vault block, it's required to access the secret i.e. `vault.mysecret.hello`.
+
+> [!NOTE]
+> Why not let the path be the accessor like path my/long/path -> my.long.path
+> This is because paths can have dots in them, so having the alias makes accessing nested paths workable without much effort.
 
 ```hcl
 vault {
     mountpath = "secret"
     path = "voki"
+    alias = "mysecret"
 }
 
 target "myserver" {
@@ -340,7 +345,7 @@ target "myserver" {
     user = "root"
 
     step "cmd" {
-        command = "echo ${vault.voki.hello}"
+        command = "echo ${vault.mysecret.hello}"
     }
 }
 ```
@@ -351,9 +356,9 @@ and invoke voki
 VOKI_VAULT_TOKEN=123456 VOKI_VAULT_ADDR="http://127.0.0.1:8200" voki run target.hcl
 ```
 
-It's also possible to grab secrets from different paths
+It's also possible to grab secrets from multiple paths.
 
-add another secret in a different path
+Add another secret in a different path
 
 ```sh
 vault kv put -mount=secret another hello=world
@@ -363,11 +368,13 @@ vault kv put -mount=secret another hello=world
 vault {
     mountpath = "secret"
     path = "voki"
+    alias = "this"
 }
 
 vault {
     mountpath = "secret"
     path = "another"
+    alias = "that"
 }
 
 target "myserver" {
@@ -375,11 +382,11 @@ target "myserver" {
     user = "root"
 
     step "cmd" {
-        command = "echo ${vault.voki.hello}"
+        command = "echo ${vault.this.hello}"
     }
 
     step "cmd" {
-        command = "echo ${vault.another.hello}"
+        command = "echo ${vault.that.hello}"
     }
 }
 ```

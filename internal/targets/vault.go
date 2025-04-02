@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"maps"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/hcl/v2"
@@ -23,6 +22,7 @@ type VaultConfig struct {
 type Vault struct {
 	Mountpath string `hcl:"mountpath"`
 	Path      string `hcl:"path"`
+	Alias     string `hcl:"alias"`
 }
 
 var vaultSchema = &hcl.BodySchema{
@@ -37,6 +37,7 @@ var vaultBlockSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{
 		{Name: "mountpath"},
 		{Name: "path"},
+		{Name: "alias"},
 	},
 }
 
@@ -78,8 +79,15 @@ func (v *VaultConfig) LoadVault(in []byte) (map[string]cty.Value, error) {
 			}
 		}
 
-		if c.Mountpath == "" || c.Path == "" {
-			return nil, fmt.Errorf("mountpath and path are required")
+		if attr, exists := blockVault.Attributes["alias"]; exists {
+			decodeDiags := gohcl.DecodeExpression(attr.Expr, nil, &c.Alias)
+			if decodeDiags.HasErrors() {
+				log.Fatalf("decode path attr error: %v", decodeDiags)
+			}
+		}
+
+		if c.Mountpath == "" || c.Path == "" || c.Alias == "" {
+			return nil, fmt.Errorf("mountpath, path and alias are required")
 		}
 
 		res, err := v.getSecret(c.Mountpath, c.Path)
@@ -87,24 +95,9 @@ func (v *VaultConfig) LoadVault(in []byte) (map[string]cty.Value, error) {
 			return nil, err
 		}
 
-		nesting := make(map[string]cty.Value)
-		keys := strings.Split(c.Path, "/")
-		fmt.Println(keys)
-		for i, p := range keys {
-			fmt.Println(i, len(keys)-1)
-			if i == 0 {
-				nesting = map[string]cty.Value{p: cty.ObjectVal(res)}
-			} else {
-				fmt.Println("-----", p, nesting)
-				nesting[p] = cty.ObjectVal(nesting)
-			}
-		}
+		aliased := map[string]cty.Value{c.Alias: cty.ObjectVal(res)}
 
-		fmt.Println(nesting)
-
-		//values := map[string]cty.Value{p: cty.ObjectVal(res)}
-
-		maps.Copy(secrets, nesting)
+		maps.Copy(secrets, aliased)
 	}
 
 	return secrets, nil
