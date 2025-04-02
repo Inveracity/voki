@@ -135,6 +135,7 @@ func worker(client *client.Client, user string, targetfiles <-chan string, resul
 			Variables: map[string]cty.Value{
 				"vault": cty.ObjectVal(vaultVars),
 				"var":   cty.ObjectVal(variables),
+				"env":   cty.ObjectVal(targets.GetEnv()),
 			},
 		}
 

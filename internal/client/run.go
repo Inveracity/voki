@@ -6,7 +6,9 @@ import (
 	"log"
 	"os"
 	"path"
+	"strings"
 
+	"github.com/inveracity/voki/internal/local"
 	"github.com/inveracity/voki/internal/ssh"
 	"github.com/inveracity/voki/internal/targets"
 	"github.com/vbauerster/mpb/v8"
@@ -29,24 +31,28 @@ func (c *Client) Run(hcl string, username string) {
 	for _, target := range config.Targets {
 		c.Printer.Title(target.Name)
 
-		bar := c.Bar.AddBar(0,
-			mpb.BarOptional(mpb.BarWidth(40), true),
-			mpb.PrependDecorators(
-				decor.Name(fmt.Sprintf("%-27s", target.Name)),
-			),
-			mpb.AppendDecorators(
-				decor.Counters(decor.CountersNoUnit(""), "%d / %d"),
-			),
-		)
-
-		// Hide progresss bars when running in standard serial mode
-		if !c.Parallel {
-			bar.Abort(true)
+		var bar *mpb.Bar
+		if c.Parallel {
+			bar = c.Bar.AddBar(0,
+				mpb.BarOptional(mpb.BarWidth(40), true),
+				mpb.PrependDecorators(
+					decor.Name(fmt.Sprintf("%-27s", target.Name)),
+				),
+				mpb.AppendDecorators(
+					decor.Counters(decor.CountersNoUnit(""), "%d / %d"),
+				),
+			)
 		}
 
-		bar.SetTotal(int64(len(target.Steps)), false)
+		if bar != nil {
+			bar.SetTotal(int64(len(target.Steps)), false)
+		}
+
 		c.ExecuteSteps(target, target.Steps, bar)
-		bar.EnableTriggerComplete()
+
+		if bar != nil {
+			bar.EnableTriggerComplete()
+		}
 	}
 }
 
@@ -71,7 +77,19 @@ func (c *Client) ExecuteSteps(target targets.Target, steps []targets.Step, bar *
 			}
 
 			step.Command = cmd
-			stdout, stderr, err := ssh.RunCommand(target, step.Command)
+
+			var (
+				stdout string
+				stderr string
+				err    error
+			)
+
+			if strings.ToLower(target.Host) == "localhost" {
+				// Run the command locally
+				stdout, stderr, err = local.RunCommand(step)
+			} else {
+				stdout, stderr, err = ssh.RunCommand(target, step.Command)
+			}
 
 			c.Printer.Default("Result:")
 			if err != nil {
@@ -79,8 +97,17 @@ func (c *Client) ExecuteSteps(target targets.Target, steps []targets.Step, bar *
 				c.Printer.Fatal(err)
 			}
 
-			c.Printer.Success(stdout)
-			bar.Increment()
+			if stdout != "" {
+				c.Printer.Success(stdout)
+			}
+
+			if stderr != "" {
+				c.Printer.Error(stderr)
+			}
+
+			if bar != nil {
+				bar.Increment()
+			}
 
 		// Copy a file to the remote server
 		case "file":
@@ -110,38 +137,47 @@ func (c *Client) ExecuteSteps(target targets.Target, steps []targets.Step, bar *
 				file.Source = temp.Name() + "render.tmp"
 			}
 
-			_, stderr, err := ssh.RunCommand(target, "mkdir -p "+temp.Name()+path.Dir(file.Destination))
-			if err != nil {
-				c.Printer.Error(stderr)
-				c.Printer.Fatal(err)
-			}
-
-			ssh.TransferFile(ctx, *target.User, target.Host, file, temp.Name())
-
 			c.Printer.Default("Result:")
+			if strings.ToLower(target.Host) == "localhost" {
+				if err := local.CopyFile(file.Source, file.Destination); err != nil {
+					c.Printer.Fatal(err)
+				}
+				c.Printer.Success(file.Destination)
 
-			_, stderr, err = ssh.RunCommand(target, "sudo mv "+temp.Name()+file.Destination+" "+file.Destination)
-			if err != nil {
-				c.Printer.Error(stderr)
-				c.Printer.Fatal(err)
-			}
-
-			if step.Chown != "" {
-				_, stderr, err := ssh.RunCommand(target, "sudo chown "+step.Chown+" "+step.Destination)
+			} else {
+				_, stderr, err := ssh.RunCommand(target, "mkdir -p "+temp.Name()+path.Dir(file.Destination))
 				if err != nil {
 					c.Printer.Error(stderr)
 					c.Printer.Fatal(err)
 				}
+
+				ssh.TransferFile(ctx, *target.User, target.Host, file, temp.Name())
+
+				_, stderr, err = ssh.RunCommand(target, "sudo mv "+temp.Name()+file.Destination+" "+file.Destination)
+				if err != nil {
+					c.Printer.Error(stderr)
+					c.Printer.Fatal(err)
+				}
+
+				if step.Chown != "" {
+					_, stderr, err := ssh.RunCommand(target, "sudo chown "+step.Chown+" "+step.Destination)
+					if err != nil {
+						c.Printer.Error(stderr)
+						c.Printer.Fatal(err)
+					}
+				}
+
+				_, stderr, err = ssh.RunCommand(target, "sudo rm -rf "+temp.Name())
+				if err != nil {
+					c.Printer.Error(stderr)
+					c.Printer.Fatal(err)
+				}
+				c.Printer.Success(step.Destination)
 			}
 
-			_, stderr, err = ssh.RunCommand(target, "sudo rm -rf "+temp.Name())
-			if err != nil {
-				c.Printer.Error(stderr)
-				c.Printer.Fatal(err)
+			if bar != nil {
+				bar.Increment()
 			}
-
-			c.Printer.Success(step.Destination)
-			bar.Increment()
 
 		// Parse a file with steps in it and run them
 		case "task":
@@ -151,7 +187,9 @@ func (c *Client) ExecuteSteps(target targets.Target, steps []targets.Step, bar *
 				c.Printer.Fatal(err)
 			}
 
-			bar.SetTotal(int64(len(config.Steps))+bar.Current(), false)
+			if bar != nil {
+				bar.SetTotal(int64(len(config.Steps))+bar.Current(), false)
+			}
 			c.ExecuteSteps(target, config.Steps, bar)
 
 		default:
