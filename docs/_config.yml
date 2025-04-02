@@ -1,4 +1,6 @@
 markdown: GFM
-remote_theme: pages-themes/cayman@v0.2.0
+remote_theme: jekyll/minima
 plugins:
   - jekyll-remote-theme
+minima:
+  skin: dark
