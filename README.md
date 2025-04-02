@@ -325,13 +325,19 @@ add a secret to vault
 vault kv put -mount=secret voki hello=world
 ```
 
-Now use the secret in a target file
+Now use the secret in a target file.
+
+Notice the alias in the Vault block, it's required to access the secret i.e. `vault.mysecret.hello`.
+
+> [!NOTE]
+> Why not let the path be the accessor like path my/long/path -> my.long.path
+> This is because paths can have dots in them, so having the alias makes accessing nested paths workable without much effort.
 
 ```hcl
-
 vault {
     mountpath = "secret"
     path = "voki"
+    alias = "mysecret"
 }
 
 target "myserver" {
@@ -339,7 +345,7 @@ target "myserver" {
     user = "root"
 
     step "cmd" {
-        command = "echo ${vault.hello}"
+        command = "echo ${vault.mysecret.hello}"
     }
 }
 ```
@@ -348,6 +354,41 @@ and invoke voki
 
 ```sh
 VOKI_VAULT_TOKEN=123456 VOKI_VAULT_ADDR="http://127.0.0.1:8200" voki run target.hcl
+```
+
+It's also possible to grab secrets from multiple paths.
+
+Add another secret in a different path
+
+```sh
+vault kv put -mount=secret another hello=world
+```
+
+```hcl
+vault {
+    mountpath = "secret"
+    path = "voki"
+    alias = "this"
+}
+
+vault {
+    mountpath = "secret"
+    path = "another"
+    alias = "that"
+}
+
+target "myserver" {
+    host = "127.0.0.1:22"
+    user = "root"
+
+    step "cmd" {
+        command = "echo ${vault.this.hello}"
+    }
+
+    step "cmd" {
+        command = "echo ${vault.that.hello}"
+    }
+}
 ```
 
 ## Build from source

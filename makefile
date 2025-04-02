@@ -20,3 +20,8 @@ zip: build
 	@mkdir -p dist
 	@zip -j dist/voki_linux_amd64.zip bin/voki
 	@rm bin/voki
+
+.PHONY: vault
+vault:
+	@echo "running vault..."
+	VAULT_DEV_ROOT_TOKEN_ID=123456 vault server -dev

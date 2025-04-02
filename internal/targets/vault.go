@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"maps"
 	"time"
 
 	"github.com/hashicorp/hcl/v2"
@@ -21,6 +22,7 @@ type VaultConfig struct {
 type Vault struct {
 	Mountpath string `hcl:"mountpath"`
 	Path      string `hcl:"path"`
+	Alias     string `hcl:"alias"`
 }
 
 var vaultSchema = &hcl.BodySchema{
@@ -35,6 +37,7 @@ var vaultBlockSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{
 		{Name: "mountpath"},
 		{Name: "path"},
+		{Name: "alias"},
 	},
 }
 
@@ -53,32 +56,51 @@ func (v *VaultConfig) LoadVault(in []byte) (map[string]cty.Value, error) {
 
 	vaultBody, diags := file.Body.Content(vaultSchema)
 
-	// TODO: if the vault block is not in the hcl file body, this crashes with a runtime error index out of range [0]
-	blockVault, blockDiags := vaultBody.Blocks[0].Body.Content(vaultBlockSchema)
-	if blockDiags.HasErrors() {
-		return nil, err
-	}
+	secrets := map[string]cty.Value{}
+	for _, block := range vaultBody.Blocks {
+		blockVault, blockDiags := block.Body.Content(vaultBlockSchema)
 
-	var c = &Vault{}
-	if attr, exists := blockVault.Attributes["mountpath"]; exists {
-		decodeDiags := gohcl.DecodeExpression(attr.Expr, nil, &c.Mountpath)
-		if decodeDiags.HasErrors() {
-			log.Fatalf("decode mountpath attr error: %v", decodeDiags)
+		if blockDiags.HasErrors() {
+			return nil, err
 		}
-	}
 
-	if attr, exists := blockVault.Attributes["path"]; exists {
-		decodeDiags := gohcl.DecodeExpression(attr.Expr, nil, &c.Path)
-		if decodeDiags.HasErrors() {
-			log.Fatalf("decode path attr error: %v", decodeDiags)
+		var c = &Vault{}
+		if attr, exists := blockVault.Attributes["mountpath"]; exists {
+			decodeDiags := gohcl.DecodeExpression(attr.Expr, nil, &c.Mountpath)
+			if decodeDiags.HasErrors() {
+				log.Fatalf("decode mountpath attr error: %v", decodeDiags)
+			}
 		}
+
+		if attr, exists := blockVault.Attributes["path"]; exists {
+			decodeDiags := gohcl.DecodeExpression(attr.Expr, nil, &c.Path)
+			if decodeDiags.HasErrors() {
+				log.Fatalf("decode path attr error: %v", decodeDiags)
+			}
+		}
+
+		if attr, exists := blockVault.Attributes["alias"]; exists {
+			decodeDiags := gohcl.DecodeExpression(attr.Expr, nil, &c.Alias)
+			if decodeDiags.HasErrors() {
+				log.Fatalf("decode path attr error: %v", decodeDiags)
+			}
+		}
+
+		if c.Mountpath == "" || c.Path == "" || c.Alias == "" {
+			return nil, fmt.Errorf("mountpath, path and alias are required")
+		}
+
+		res, err := v.getSecret(c.Mountpath, c.Path)
+		if err != nil {
+			return nil, err
+		}
+
+		aliased := map[string]cty.Value{c.Alias: cty.ObjectVal(res)}
+
+		maps.Copy(secrets, aliased)
 	}
 
-	if c.Mountpath == "" || c.Path == "" {
-		return nil, fmt.Errorf("mountpath and path are required")
-	}
-
-	return v.getSecret(c.Mountpath, c.Path)
+	return secrets, nil
 }
 
 func (v *VaultConfig) getSecret(mountpath, path string) (map[string]cty.Value, error) {
