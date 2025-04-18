@@ -13,3 +13,6 @@ dist/
 !examples/*.hcl
 !examples/*.tpl
 *.hcl
+
+# vscode
+!.vscode/

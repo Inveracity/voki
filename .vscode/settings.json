@@ -1,0 +1,13 @@
+{
+    "files.trimFinalNewlines": true,
+    "files.eol": "\n",
+    "files.insertFinalNewline": true,
+    "editor.formatOnSave": true,
+
+    "[go]": {
+        "editor.insertSpaces": false,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+        }
+    },
+}
