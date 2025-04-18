@@ -9,10 +9,11 @@ import (
 	"strings"
 
 	"github.com/inveracity/voki/internal/local"
-	"github.com/inveracity/voki/internal/ssh"
+	vokissh "github.com/inveracity/voki/internal/ssh"
 	"github.com/inveracity/voki/internal/targets"
 	"github.com/vbauerster/mpb/v8"
 	"github.com/vbauerster/mpb/v8/decor"
+	"golang.org/x/crypto/ssh"
 )
 
 func (c *Client) Run(hcl string, username string) {
@@ -48,7 +49,13 @@ func (c *Client) Run(hcl string, username string) {
 			bar.SetTotal(int64(len(target.Steps)), false)
 		}
 
-		c.ExecuteSteps(target, target.Steps, bar)
+		sshclient, err := vokissh.CreateSSHClient(target)
+		if err != nil {
+			c.Printer.Fatal(err)
+		}
+		defer sshclient.Close()
+
+		c.ExecuteSteps(sshclient, target, target.Steps, bar)
 
 		if bar != nil {
 			bar.EnableTriggerComplete()
@@ -56,7 +63,7 @@ func (c *Client) Run(hcl string, username string) {
 	}
 }
 
-func (c *Client) ExecuteSteps(target targets.Target, steps []targets.Step, bar *mpb.Bar) {
+func (c *Client) ExecuteSteps(sshclient *ssh.Client, target targets.Target, steps []targets.Step, bar *mpb.Bar) {
 	for _, step := range steps {
 		switch step.Action {
 
@@ -87,8 +94,9 @@ func (c *Client) ExecuteSteps(target targets.Target, steps []targets.Step, bar *
 			if strings.ToLower(target.Host) == "localhost" {
 				// Run the command locally
 				stdout, stderr, err = local.RunCommand(step)
+
 			} else {
-				stdout, stderr, err = ssh.RunCommand(target, step.Command)
+				stdout, stderr, err = vokissh.RunCommand(sshclient, step.Command)
 			}
 
 			c.Printer.Default("Result:")
@@ -119,7 +127,7 @@ func (c *Client) ExecuteSteps(target targets.Target, steps []targets.Step, bar *
 				log.Fatalln(err)
 			}
 
-			file := ssh.File{
+			file := vokissh.File{
 				Source:      step.Source,
 				Destination: step.Destination,
 				Mode:        step.Mode,
@@ -146,29 +154,29 @@ func (c *Client) ExecuteSteps(target targets.Target, steps []targets.Step, bar *
 				c.Printer.Success(file.Destination)
 
 			} else {
-				_, stderr, err := ssh.RunCommand(target, "mkdir -p "+temp.Name()+path.Dir(file.Destination))
+				_, stderr, err := vokissh.RunCommand(sshclient, "mkdir -p "+temp.Name()+path.Dir(file.Destination))
 				if err != nil {
 					c.Printer.Error(stderr)
 					c.Printer.Fatal(err)
 				}
 
-				ssh.TransferFile(ctx, *target.User, target.Host, file, temp.Name())
+				vokissh.TransferFile(ctx, *target.User, target.Host, file, temp.Name())
 
-				_, stderr, err = ssh.RunCommand(target, "sudo mv "+temp.Name()+file.Destination+" "+file.Destination)
+				_, stderr, err = vokissh.RunCommand(sshclient, "sudo mv "+temp.Name()+file.Destination+" "+file.Destination)
 				if err != nil {
 					c.Printer.Error(stderr)
 					c.Printer.Fatal(err)
 				}
 
 				if step.Chown != "" {
-					_, stderr, err := ssh.RunCommand(target, "sudo chown "+step.Chown+" "+step.Destination)
+					_, stderr, err := vokissh.RunCommand(sshclient, "sudo chown "+step.Chown+" "+step.Destination)
 					if err != nil {
 						c.Printer.Error(stderr)
 						c.Printer.Fatal(err)
 					}
 				}
 
-				_, stderr, err = ssh.RunCommand(target, "sudo rm -rf "+temp.Name())
+				_, stderr, err = vokissh.RunCommand(sshclient, "sudo rm -rf "+temp.Name())
 				if err != nil {
 					c.Printer.Error(stderr)
 					c.Printer.Fatal(err)
@@ -191,7 +199,7 @@ func (c *Client) ExecuteSteps(target targets.Target, steps []targets.Step, bar *
 			if bar != nil {
 				bar.SetTotal(int64(len(config.Steps))+bar.Current(), false)
 			}
-			c.ExecuteSteps(target, config.Steps, bar)
+			c.ExecuteSteps(sshclient, target, config.Steps, bar)
 
 		default:
 			log.Fatalln("Unknown action", step.Action)

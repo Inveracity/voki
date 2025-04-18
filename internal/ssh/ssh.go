@@ -11,7 +11,23 @@ import (
 	"golang.org/x/crypto/ssh/agent"
 )
 
-func RunCommand(config targets.Target, command string) (string, string, error) {
+func RunCommand(sshclient *ssh.Client, command string) (string, string, error) {
+	// Once a Session is created, you can execute a single command on
+	// the remote side using the Run method.
+	session, err := sshclient.NewSession()
+	defer session.Close()
+
+	var b bytes.Buffer
+	var e bytes.Buffer
+	session.Stdout = &b
+	session.Stderr = &e
+	err = session.Run(command)
+
+	return b.String(), e.String(), err
+}
+
+// CreateSSHClient creates a new SSH client using the provided target configuration.
+func CreateSSHClient(config targets.Target) (*ssh.Client, error) {
 	sock, err := sshAgent()
 	if err != nil {
 		log.Fatalln(err)
@@ -27,25 +43,7 @@ func RunCommand(config targets.Target, command string) (string, string, error) {
 		log.Fatalln(err)
 	}
 
-	defer sshclient.Close()
-
-	// Each ClientConn can support multiple interactive sessions,
-	// represented by a Session.
-	session, err := sshclient.NewSession()
-	if err != nil {
-		log.Fatal("Failed to create session: ", err)
-	}
-	defer session.Close()
-
-	// Once a Session is created, you can execute a single command on
-	// the remote side using the Run method.
-	var b bytes.Buffer
-	var e bytes.Buffer
-	session.Stdout = &b
-	session.Stderr = &e
-	err = session.Run(command)
-
-	return b.String(), e.String(), err
+	return sshclient, nil
 }
 
 func sshAgent() (agent.ExtendedAgent, error) {
