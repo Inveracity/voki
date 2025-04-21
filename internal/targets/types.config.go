@@ -18,6 +18,7 @@ type Target struct {
 
 type Step struct {
 	Action      string   `hcl:"action,label"`
+	Name        string   `hcl:"name,optional"`
 	Command     string   `hcl:"command,optional"`
 	Task        string   `hcl:"task,optional"`
 	Use         []string `hcl:"use,optional"`

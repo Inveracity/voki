@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"slices"
 	"strings"
 
 	"github.com/inveracity/voki/internal/local"
@@ -65,11 +66,17 @@ func (c *Client) Run(hcl string, username string) {
 
 func (c *Client) ExecuteSteps(sshclient *ssh.Client, target targets.Target, steps []targets.Step, bar *mpb.Bar) {
 	for _, step := range steps {
+		// SkipStep checks if the step should be skipped based on the provided steps
+		// If no steps are provided, all steps will be executed
+		if c.Steps != nil && len(*c.Steps) > 0 && !slices.Contains(*c.Steps, step.Name) {
+			continue
+		}
+
 		switch step.Action {
 
 		// Run commands on the remote server
 		case "cmd":
-			c.Printer.Default("Command:")
+			c.Printer.Default(fmt.Sprintf("Command: %s", step.Name))
 			c.Printer.Info(step.Command)
 
 			// Default to bash

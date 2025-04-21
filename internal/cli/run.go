@@ -22,6 +22,7 @@ var (
 	parallel   int
 	vaulttoken string
 	vaultaddr  string
+	steps      []string
 )
 
 type CmdRun struct {
@@ -62,6 +63,11 @@ func (h *CmdRun) Command() *cobra.Command {
 				mpb.WithAutoRefresh(),
 			)
 
+			// If specific steps have been chosen, pass the step names to the client
+			if len(steps) > 0 {
+				h.Client.Steps = &steps
+			}
+
 			// Start the worker(s)
 			targetfiles := make(chan string, len(args))
 			results := make(chan int, len(args))
@@ -92,6 +98,7 @@ func (h *CmdRun) Command() *cobra.Command {
 	cmd.Flags().IntVarP(&parallel, "parallel", "p", 1, "number of parallel runs")
 	cmd.Flags().StringVar(&vaulttoken, "vault-token", "", "vault token")
 	cmd.Flags().StringVar(&vaultaddr, "vault-addr", "https://127.0.0.1:8200", "vault address")
+	cmd.Flags().StringArrayVarP(&steps, "steps", "s", []string{}, "steps to run (excludes all others)")
 	viper.BindPFlag("user", cmd.PersistentFlags().Lookup("user"))
 	viper.BindPFlag("parallel", cmd.PersistentFlags().Lookup("parallel"))
 	viper.BindPFlag("vault-token", cmd.PersistentFlags().Lookup("vault_token"))

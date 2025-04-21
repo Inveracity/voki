@@ -300,6 +300,40 @@ and to run them in parallel add the `-p <number>` specifying how many to run in 
 voki run -p 2 target1.hcl target2.hcl ... etc.
 ```
 
+## Naming and selecting steps
+
+It is possible to only run specific steps if they have been given a name:
+
+```hcl
+// target.hcl
+
+target "myserver" {
+    user = "root"
+    host = "xyz:22"
+
+    step "cmd" {
+        name = "mystep"
+        command = "echo one"
+    }
+    step "cmd" {
+        name = "another"
+        command = "echo two"
+    }
+}
+```
+
+With the example above the names "mystep" and "another" can now be selected with the flag --step (-s):
+
+```sh
+voki run -s mystep target.hcl
+```
+
+or multiple steps
+
+```sh
+voki run -s mystep -s another target.hcl
+```
+
 ## Vault integration
 
 Install vault and run it in _dev mode_ to test locally.

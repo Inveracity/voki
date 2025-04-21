@@ -19,6 +19,7 @@ type Client struct {
 	Printer     *printer.Printer
 	VaultToken  *string
 	VaultAddr   *string
+	Steps       *[]string
 }
 
 func New() *Client {
