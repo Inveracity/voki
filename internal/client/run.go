@@ -50,11 +50,14 @@ func (c *Client) Run(hcl string, username string) {
 			bar.SetTotal(int64(len(target.Steps)), false)
 		}
 
+		// sshclient will be nil if the target.Host is localhost
 		sshclient, err := vokissh.CreateSSHClient(target)
 		if err != nil {
 			c.Printer.Fatal(err)
 		}
-		defer sshclient.Close()
+		if sshclient != nil {
+			defer sshclient.Close()
+		}
 
 		c.ExecuteSteps(sshclient, target, target.Steps, bar)
 

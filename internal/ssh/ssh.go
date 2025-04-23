@@ -28,6 +28,10 @@ func RunCommand(sshclient *ssh.Client, command string) (string, string, error) {
 
 // CreateSSHClient creates a new SSH client using the provided target configuration.
 func CreateSSHClient(config targets.Target) (*ssh.Client, error) {
+	if config.Host == "localhost" {
+		return nil, nil
+	}
+
 	sock, err := sshAgent()
 	if err != nil {
 		log.Fatalln(err)

@@ -131,7 +131,6 @@ func worker(client *client.Client, user string, targetfiles <-chan string, resul
 			if err != nil {
 				log.Fatalln("load vault ", err)
 			}
-
 		}
 
 		client.EvalContext = &hcl.EvalContext{
