@@ -16,3 +16,6 @@ dist/
 
 # vscode
 !.vscode/
+
+# temp folder for testing
+temp/
