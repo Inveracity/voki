@@ -32,6 +32,11 @@ func CreateSSHClient(config targets.Target) (*ssh.Client, error) {
 		return nil, nil
 	}
 
+	if config.User == nil {
+		log.Fatalln("Error no user has been set. Set a user either in a voki-config.hcl or in the target file itself and try again")
+		return nil, nil
+	}
+
 	sock, err := sshAgent()
 	if err != nil {
 		log.Fatalln(err)
