@@ -1,6 +1,6 @@
 module github.com/inveracity/voki
 
-go 1.23.7
+go 1.24.4
 
 require (
 	github.com/bramvdbogaerde/go-scp v1.5.0
