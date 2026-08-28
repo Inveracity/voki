@@ -9,6 +9,22 @@ Voki is a single binary with two roles:
 
 One controller drives any number of agents.
 
+```mermaid
+graph TB
+    Admin["Admin (SSH)"]
+    Server["voki server (controller)"]
+    Agent1["voki agent"]
+    Agent2["voki agent"]
+
+    Admin -- "voki run / peers, via voki.sock (local)" --> Server
+    Agent1 -- "dial home :7331 (mTLS)" --> Server
+    Agent2 -- "dial home :7331 (mTLS)" --> Server
+    Server -. "steps (msgpack over mTLS)" .-> Agent1
+    Server -.-> Agent2
+```
+
+The admin only talks to the controller over a local unix socket. Agents dial out to the controller; the controller never connects inbound to agents, so agents need no open ports.
+
 ## Quick start
 
 On the controller node:
