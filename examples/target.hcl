@@ -1,8 +1,7 @@
-address = "127.0.0.1:22"
+address = "127.0.0.1"
 
 target "myserver" {
-  user = "root"         // SSH username to connect to the remote host with
-  host = var.address // Change this to the IP address of your remote host
+  host = var.address // machine running 'voki agent', port defaults to 7331
 
   // Simple command
   step "cmd" {

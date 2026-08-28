@@ -54,7 +54,7 @@ func (v *VaultConfig) LoadVault(in []byte) (map[string]cty.Value, error) {
 		return nil, err
 	}
 
-	vaultBody, diags := file.Body.Content(vaultSchema)
+	vaultBody, _ := file.Body.Content(vaultSchema)
 
 	secrets := map[string]cty.Value{}
 	for _, block := range vaultBody.Blocks {

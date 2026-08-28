@@ -14,13 +14,11 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 )
 
 type FormatCommand struct {
-	parser   *hclparse.Parser
 	hclDiags hcl.Diagnostics
 
 	errs *multierror.Error
@@ -35,7 +33,7 @@ func (f *FormatCommand) Fmt() {
 	for _, path := range f.Paths {
 		info, err := os.Stat(path)
 		if err != nil {
-			f.appendError(fmt.Errorf("No file or directory at %s", path))
+			f.appendError(fmt.Errorf("no file or directory at %s", path))
 			continue
 		}
 
@@ -45,7 +43,7 @@ func (f *FormatCommand) Fmt() {
 			if isVokiFile(info) {
 				fp, err := os.Open(path)
 				if err != nil {
-					f.appendError(fmt.Errorf("Failed to open file %s: %w", path, err))
+					f.appendError(fmt.Errorf("failed to open file %s: %w", path, err))
 					continue
 				}
 
@@ -53,7 +51,7 @@ func (f *FormatCommand) Fmt() {
 
 				fp.Close()
 			} else {
-				f.appendError(fmt.Errorf("Only .hcl files can be processed"))
+				f.appendError(fmt.Errorf("only .hcl files can be processed"))
 				continue
 			}
 		}
@@ -63,7 +61,7 @@ func (f *FormatCommand) Fmt() {
 func (f *FormatCommand) processDir(path string) {
 	entries, err := os.ReadDir(path)
 	if err != nil {
-		f.appendError(fmt.Errorf("Failed to list directory %s", path))
+		f.appendError(fmt.Errorf("failed to list directory %s: %w", path, err))
 		return
 	}
 
@@ -88,7 +86,7 @@ func (f *FormatCommand) processDir(path string) {
 		if isVokiFile(info) {
 			fp, err := os.Open(subpath)
 			if err != nil {
-				f.appendError(fmt.Errorf("Failed to open file %s: %w", path, err))
+				f.appendError(fmt.Errorf("failed to open file %s: %w", path, err))
 				continue
 			}
 
@@ -102,7 +100,7 @@ func (f *FormatCommand) processDir(path string) {
 func (f *FormatCommand) processFile(path string, r io.Reader) {
 	src, err := io.ReadAll(r)
 	if err != nil {
-		f.appendError(fmt.Errorf("Failed to read file %s: %w", path, err))
+		f.appendError(fmt.Errorf("failed to read file %s: %w", path, err))
 		return
 	}
 
@@ -123,7 +121,7 @@ func (f *FormatCommand) processFile(path string, r io.Reader) {
 
 		if f.WriteFile {
 			if err := os.WriteFile(path, out, 0644); err != nil {
-				f.appendError(fmt.Errorf("Failed to write file %s: %w", path, err))
+				f.appendError(fmt.Errorf("failed to write file %s: %w", path, err))
 				return
 			}
 		}
@@ -131,7 +129,7 @@ func (f *FormatCommand) processFile(path string, r io.Reader) {
 	}
 
 	if f.WriteStdout {
-		formattedFile.WriteTo(os.Stdout)
+		_, _ = formattedFile.WriteTo(os.Stdout)
 	}
 }
 

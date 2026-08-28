@@ -1,8 +1,10 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -20,7 +22,7 @@ func InitializeEnv(cmd *cobra.Command) {
 	v.SetConfigFile("voki-config.hcl")
 	v.AddConfigPath(".")
 	err := v.ReadInConfig()
-	if err != nil {
+	if err != nil && !errors.As(err, &viper.ConfigFileNotFoundError{}) && !os.IsNotExist(err) {
 		log.Printf("Error reading config file: %s", err)
 	}
 

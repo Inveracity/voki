@@ -7,18 +7,18 @@ import (
 	"github.com/fatih/color"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"github.com/vbauerster/mpb/v8"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 
 	"github.com/inveracity/voki/internal/client"
+	"github.com/inveracity/voki/internal/controller"
+	"github.com/inveracity/voki/internal/remote"
 	"github.com/inveracity/voki/internal/targets"
 	"github.com/inveracity/voki/internal/targets/inline"
 )
 
 var (
-	user       string
 	parallel   int
 	vaulttoken string
 	vaultaddr  string
@@ -63,7 +63,7 @@ func (h *CmdRun) Command() *cobra.Command {
 				mpb.WithAutoRefresh(),
 			)
 
-			// If specific steps have been chosen, pass the step names to the client
+			// If specific steps have been chosen, pass the step names to the run client
 			if len(steps) > 0 {
 				h.Client.Steps = &steps
 			}
@@ -73,7 +73,7 @@ func (h *CmdRun) Command() *cobra.Command {
 			results := make(chan int, len(args))
 
 			for range parallel {
-				go worker(h.Client, user, targetfiles, results)
+				go worker(h.Client, targetfiles, results)
 			}
 
 			// Send the target files to the workers
@@ -94,20 +94,15 @@ func (h *CmdRun) Command() *cobra.Command {
 	}
 
 	cmd.Flags().SortFlags = false
-	cmd.Flags().StringVarP(&user, "user", "u", "", "user")
 	cmd.Flags().IntVarP(&parallel, "parallel", "p", 1, "number of parallel runs")
 	cmd.Flags().StringVar(&vaulttoken, "vault-token", "", "vault token")
 	cmd.Flags().StringVar(&vaultaddr, "vault-addr", "https://127.0.0.1:8200", "vault address")
 	cmd.Flags().StringArrayVarP(&steps, "steps", "s", []string{}, "steps to run (excludes all others)")
-	viper.BindPFlag("user", cmd.PersistentFlags().Lookup("user"))
-	viper.BindPFlag("parallel", cmd.PersistentFlags().Lookup("parallel"))
-	viper.BindPFlag("vault-token", cmd.PersistentFlags().Lookup("vault_token"))
-	viper.BindPFlag("vault-addr", cmd.PersistentFlags().Lookup("vault_addr"))
 
 	return cmd
 }
 
-func worker(client *client.Client, user string, targetfiles <-chan string, results chan<- int) {
+func worker(client *client.Client, targetfiles <-chan string, results chan<- int) {
 	for targetfile := range targetfiles {
 		content, err := os.ReadFile(targetfile)
 		if err != nil {
@@ -145,7 +140,17 @@ func worker(client *client.Client, user string, targetfiles <-chan string, resul
 			},
 		}
 
-		client.Run(string(content), user)
+		client.Run(string(content), socketExecutor)
 		results <- 0
 	}
+}
+
+// socketExecutor connects to the controller daemon and returns an executor
+// bound to the agent named by the target host.
+func socketExecutor(host string) (client.Executor, error) {
+	conn, err := remote.Dial(controller.SocketPath(home()))
+	if err != nil {
+		return nil, err
+	}
+	return conn.Agent(host), nil
 }

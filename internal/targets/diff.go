@@ -26,6 +26,11 @@ func DiffFiles(path1, path2 string) {
 
 // Diff takes two strings and compares them line by line
 func Diff(old, new string) {
+	fmt.Println(DiffPrettyText(LineDiffs(old, new)))
+}
+
+// LineDiffs returns the line-based diff between old and new.
+func LineDiffs(old, new string) []diffmatchpatch.Diff {
 	dmp := diffmatchpatch.New()
 
 	fileAdmp, fileBdmp, dmpStrings := dmp.DiffLinesToChars(old, new)
@@ -33,7 +38,7 @@ func Diff(old, new string) {
 	diffs = dmp.DiffCharsToLines(diffs, dmpStrings)
 	diffs = dmp.DiffCleanupSemantic(diffs)
 
-	fmt.Println(DiffPrettyText(diffs))
+	return diffs
 }
 
 // DiffPrettyText converts a []Diff into a colored text report.

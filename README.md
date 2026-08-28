@@ -2,25 +2,54 @@
 
 Voki configuration management.
 
-Voki uses SSH under the hood to connect to remote machines.
+Voki is a single binary with two roles:
 
-> [!NOTE]
-> As of right now Voki requires an active SSH Agent to connect to machines.
+- **Controller**: a daemon (`voki server`) on a node you control, for example a jump host. You SSH into this node and drive all agents from here.
+- **Agent**: a small daemon (`voki agent`) on each machine you manage. Agents dial home to the controller over mutual TLS with trust on first use, no SSH and no inbound ports on agents.
 
-## Usage
+One controller drives any number of agents.
 
-Change the host in `examples/target.hcl` to a SSH reachable address and then run
+## Quick start
+
+On the controller node:
 
 ```sh
-./voki run examples/target.hcl
+voki server
 ```
+
+On each managed machine (it dials home and registers as pending):
+
+```sh
+voki agent --controller controller.example.com:7331
+```
+
+On the controller node, review and accept the agent:
+
+```sh
+voki peers list
+voki peers accept 1
+```
+
+The agent reconnects and joins the pool. Then run a specification against any number of agents:
+
+```sh
+voki run examples/target.hcl
+```
+
+## How trust works
+
+- Each side generates a self-signed certificate on first use.
+- An agent pins the controller fingerprint on the first dial (like an SSH known_hosts entry) and refuses later fingerprint changes.
+- The agent bonds to the controller and waits. The controller administrator accepts or rejects the agent with `voki peers accept/reject <id>`.
+- Accepted agents can be commanded. Rejected agents are refused at the handshake.
+
+State lives under `$VOKI_HOME` (default `~/.config/voki`): `controller/` holds the controller certificate, `peers.json` (which agents may connect) and `voki.sock` (the local socket the `voki run` command uses); `agent/` holds the agent certificate and `controller.json` (the pinned controller fingerprint).
 
 ## Example
 
 ```hcl
 target "myserver" {
-    user = "root" // SSH username to connect to the remote host with
-    host = "ADDRESS:22" // Remote host to connect to
+    host = "ADDRESS" // agent name as shown by 'voki peers list'
 
     step "cmd" {
         command = "echo 'hello world'"
@@ -48,24 +77,17 @@ Targets and tasks files can have any name desired.
 
 ### Targets
 
-_Target_ takes the following variables to configure the SSH connection.
+_Target_ takes the following variable to configure the connection.
 
 ```hcl
 target "a label for the configuration" {
-    user = "root"
-    host = "address:22"
+    host = "address" // port is optional, defaults to 7331
 
     // steps go here
 }
 ```
 
-- `user` the username to connect to the remote host.
-
-    The user variable can also be provided via a flag `voki -u USERNAME`
-
-    Or via `voki-config.hcl` see the [configuration section](#configuration)
-
-- `host` the address including the port number separated by a colon: `ipaddress:port`
+- `host` the name of a connected agent, as shown by `voki peers list` on the controller. Use `localhost` to run steps on the controller node itself.
 
 ### Steps
 
@@ -73,8 +95,7 @@ Steps has a label for which _Action_ to perform for the remote host.
 
 ```hcl
 target "mytarget" {
-    user = "root"
-    host = "address:22"
+    host = "address"
 
     step "cmd" {
         command = "hello world"
@@ -102,8 +123,7 @@ Cmd takes the following variables:
 
 ```hcl
 target "mytarget" {
-    user = "root"
-    host = "address:22"
+    host = "address"
 
     step "cmd" {
         command = "echo 'hello world'"
@@ -136,8 +156,7 @@ File takes the following variables:
 
 ```hcl
 target "mytarget" {
-    user = "root"
-    host = "address:22"
+    host = "address"
 
     step "file" {
       source = "myfile.conf"
@@ -151,8 +170,7 @@ it's also possible to supply data, which enables use of the inline functions `fi
 
 ```hcl
 target "mytarget" {
-    user = "root"
-    host = "address:22"
+    host = "address"
 
     step "file" {
       data = "content for the file"
@@ -172,8 +190,7 @@ In the `target.hcl` file define the `step "task" {}` an use the inline function 
 
     ```hcl
     target "mytarget" {
-        user = "root"
-        host = "address:22"
+        host = "address"
 
         step "task" {
             task = file("task.hcl")
@@ -204,8 +221,7 @@ In the below example a script is loaded and executed on a target.
 ```hcl
 // target.hcl
 target "myserver" {
-    user = "root"
-    host = "xyz:22"
+    host = "xyz"
 
     step "cmd" {
         command = file("hello.sh")
@@ -230,8 +246,7 @@ In the below example a script has a key/value pair passed in that will be render
 ```hcl
 // target.hcl
 target "myserver" {
-    user = "root"
-    host = "xyz:22"
+    host = "xyz"
 
     step "cmd" {
         command = template("hello.sh.tpl", {
@@ -256,8 +271,7 @@ The target file can have variables set in the following way
 name = "my name"
 
 target "myserver" {
-    user = "root"
-    host = "xyz:22"
+    host = "xyz"
 
     step "cmd" {
         command = "echo ${name}"
@@ -271,7 +285,6 @@ Configuration and environment variables can be specified via a `voki-config.hcl`
 
 ```sh
 # voki-config.hcl
-user="myuser"
 vault-address="http://127.0.0.1:8200"
 vault-token="123456"
 ```
@@ -279,10 +292,8 @@ vault-token="123456"
 or with `VOKI_` prefixed variables
 
 ```sh
-VOKI_USER="me" voki run target.hcl
+VOKI_VAULT_TOKEN="123456" voki run target.hcl
 ```
-
-With this set, the target section no longer requires the `user` variables.
 
 ## Multiple targets (and parallelization)
 
@@ -308,8 +319,7 @@ It is possible to only run specific steps if they have been given a name:
 // target.hcl
 
 target "myserver" {
-    user = "root"
-    host = "xyz:22"
+    host = "xyz"
 
     step "cmd" {
         name = "mystep"
@@ -375,8 +385,7 @@ vault {
 }
 
 target "myserver" {
-    host = "127.0.0.1:22"
-    user = "root"
+    host = "127.0.0.1"
 
     step "cmd" {
         command = "echo ${vault.mysecret.hello}"
@@ -412,8 +421,7 @@ vault {
 }
 
 target "myserver" {
-    host = "127.0.0.1:22"
-    user = "root"
+    host = "127.0.0.1"
 
     step "cmd" {
         command = "echo ${vault.this.hello}"
@@ -436,7 +444,6 @@ To run in local mode simply set the target host value to `"localhost"`
 ```hcl
 target "here" {
     host = "localhost"
-    user = "root"
 
     step "cmd" {
         command = "echo world"
@@ -449,8 +456,6 @@ target "here" {
 In local mode it can be useful to reference environment variables on the system.
 
 This can be done with `${env.THE_VARIABLE}`.
-
-Notice the `user` variable can be disregarded as it will simply run as the current user.
 
 ```hcl
 target "here" {
