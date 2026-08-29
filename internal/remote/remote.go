@@ -52,8 +52,8 @@ func (c *Conn) do(agent, op string, reqBody, respBody any) error {
 
 // AgentExecutor runs steps on one named agent through the controller daemon.
 type AgentExecutor struct {
-	conn   *Conn
-	agent  string
+	conn  *Conn
+	agent string
 }
 
 func (c *Conn) Agent(name string) *AgentExecutor {

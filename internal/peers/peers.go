@@ -25,8 +25,8 @@ type Peer struct {
 }
 
 type DB struct {
-	NextID int     `json:"next_id"`
-	Peers  []Peer  `json:"peers"`
+	NextID int    `json:"next_id"`
+	Peers  []Peer `json:"peers"`
 
 	path string `json:"-"`
 }

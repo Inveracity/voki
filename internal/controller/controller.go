@@ -15,8 +15,8 @@ import (
 	"github.com/inveracity/voki/internal/proto"
 )
 
-func Home(home string) string    { return filepath.Join(home, "controller") }
-func PeersPath(home string) string { return filepath.Join(home, "controller", "peers.json") }
+func Home(home string) string       { return filepath.Join(home, "controller") }
+func PeersPath(home string) string  { return filepath.Join(home, "controller", "peers.json") }
 func SocketPath(home string) string { return filepath.Join(home, "controller", "voki.sock") }
 
 // agentConn is one live agent connection. The mutex serializes dispatches so
@@ -29,7 +29,7 @@ type agentConn struct {
 
 // Hub holds accepted agent connections and serves CLI dispatch over a unix socket.
 type Hub struct {
-	mu    sync.Mutex
+	mu     sync.Mutex
 	agents map[string]*agentConn
 
 	dbPath     string

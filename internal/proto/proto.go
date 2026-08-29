@@ -89,5 +89,5 @@ func Decode(r io.Reader, v any) error {
 	return msgpack.Unmarshal(payload, v)
 }
 
-func Marshal(v any) ([]byte, error)  { return msgpack.Marshal(v) }
+func Marshal(v any) ([]byte, error)   { return msgpack.Marshal(v) }
 func Unmarshal(b []byte, v any) error { return msgpack.Unmarshal(b, v) }
